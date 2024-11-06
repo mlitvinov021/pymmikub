@@ -1,21 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <title>Rummikub Clone</title>
-</head>
-<body>
-    <div id="game-board">
-        <h2>Game Board</h2>
-        <div id="tiles"></div>
-    </div>
-    <div id="player-hand">
-        <h2>Your Hand</h2>
-        <div id="player-tiles"></div>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div id="game-board">
+    <h2>Game Board</h2>
+    <div id="tiles"></div>
+</div>
+<div id="player-hand">
+    <h2>Your Hand</h2>
+    <div id="player-tiles"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/game.js') }}"></script>
+{% endblock %}
