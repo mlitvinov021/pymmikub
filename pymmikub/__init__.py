@@ -5,6 +5,10 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
 from . import db
 
+# blueprint imports
+from .auth import auth as auth_blueprint
+from .main import main as main_blueprint
+
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -30,10 +34,9 @@ def create_app(test_config=None):
     
     db.init_app(app)
 
-    @app.route('/')
-    def index():
-        return render_template('index.html')
-
+    app.register_blueprint(main_blueprint)
+    app.register_blueprint(auth_blueprint)
+    
     @socketio.on('join_game')
     def handle_join_game(data):
         room = data['room']
