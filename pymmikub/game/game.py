@@ -1,51 +1,11 @@
+from typing import List
 from .color import Color
 from collections import Counter
 import random
 
 
-class Game:
-    tiles = [(int, Color)]
-    players: [Player] = []
-    current_player: Player
-    current_turn: int
-
-
-    def __init__(self) -> None:
-        initialize_tiles()
-        current_turn = 0
-
-
-    def initialize_tiles() -> None:
-        for i in range(4):
-            for y in range(13):
-                tiles.append((y, Color(i + 1)))
-        # TODO: add jokers
-        random.shuffle(tiles)
-
-
-    def draw_tile(n: int = 1) -> [(int, Color)]:
-        drawn_tiles = [(int, Color)]
-        drawn_tiles = tiles[:n]
-        tiles = [n:]
-
-        return drawn_tiles
-
-
-    def change_turn() -> None:
-        current_turn += 1
-        current_player = players[current_turn % players.length]
-
-
-    def place_tile(player: Player, tile: (int, Color), combo: Combination) -> None:
-        if player != current_player:
-            return
-        if player.hand.pop(tile) == None:
-            return
-        combo.append(tile)
-
-
 class Player:
-    hand: [(int, Color)] = []
+    hand: List[tuple[int, Color]] = []
     name: str
     uuid: str
 
@@ -57,28 +17,17 @@ class Player:
         self.name = name
 
 
-class Board:
-    combos: [Combination] = []
-
-
-    def check_valid_board() -> bool:
-        for combo in combos:
-            if combo.check_validity() == False:
-                return False
-        return True
-
-
 class Combination:
-    tiles: [(int, Color)] = []
+    tiles: List[tuple[int, Color]] = []
 
 
-    def check_validity() -> bool:
-        if tiles.length > 0 and tiles.length < 3:
+    def check_validity(self) -> bool:
+        if self.tiles.length > 0 and self.tiles.length < 3:
             return False
 
-        numbers: [int] = [i[0] for i in tiles]
+        numbers: List[int] = [i[0] for i in self.tiles]
         numbers = sorted(numbers)
-        colors: [Color] = [i[1] for i in tiles]
+        colors: List[Color] = [i[1] for i in self.tiles]
         unique_numbers: int = Counter(numbers).values()
         unique_colors: int = Counter(colors).values()
 
@@ -88,7 +37,58 @@ class Combination:
             unique_colors == 1:
             return True
         # one number in several unique colors
-        elif unique_numbers == 1 and unique_colors == tiles.length:
+        elif unique_numbers == 1 and unique_colors == self.tiles.length:
             return True
         
         return False
+
+
+class Board:
+    combos: List[Combination] = []
+
+
+    def check_valid_board(self) -> bool:
+        for combo in self.combos:
+            if combo.check_validity() == False:
+                return False
+        return True
+
+
+class Game:
+    tiles: List[tuple[int, Color]] = []
+    players: List[Player] = []
+    current_player: Player
+    current_turn: int
+
+
+    def __init__(self) -> None:
+        self.initialize_tiles()
+        current_turn = 0
+
+
+    def initialize_tiles(self) -> None:
+        for i in range(4):
+            for j in range(1, 13):
+                self.tiles.append((j, Color(i + 1)))
+        # TODO: add jokers
+        random.shuffle(self.tiles)
+
+
+    def draw_tile(self, n: int = 1) -> List[tuple[int, Color]]:
+        # drawn_tiles: List[tuple[int, Color]] = []
+        drawn_tiles = self.tiles[:n]
+
+        return drawn_tiles
+
+
+    def change_turn(self) -> None:
+        current_turn += 1
+        current_player = self.players[current_turn % self.players.length]
+
+
+    def place_tile(self, player: Player, tile: tuple[int, Color], combo: Combination) -> None:
+        if player != self.current_player:
+            return
+        if player.hand.pop(tile) == None:
+            return
+        combo.append(tile)

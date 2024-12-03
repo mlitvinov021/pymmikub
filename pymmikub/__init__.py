@@ -3,7 +3,7 @@ import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
-import game as gm
+from pymmikub.game.game import Game
 from . import db
 
 # blueprint imports
@@ -44,7 +44,7 @@ def create_app(test_config=None):
         join_room(room)
 
         if room not in games:
-            game: gm.Game = gm.Game()
+            game: Game = Game()
 
             games[room] = {
                 'players': [],
