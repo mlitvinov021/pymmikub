@@ -67,9 +67,9 @@ class Game:
 
 
     def initialize_tiles(self) -> None:
-        for i in range(4):
+        for color in Color:
             for j in range(1, 13):
-                self.tiles.append((j, Color(i + 1)))
+                self.tiles.append((j, color.value))
         # TODO: add jokers
         random.shuffle(self.tiles)
 

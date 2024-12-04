@@ -61,9 +61,10 @@ def create_app(test_config=None):
     @socketio.on('place_tile')
     def handle_place_tile(data):
         room = data['room']
-        tile = data['tile']
+        tile = tuple(data['tile'])
         # Remove the tile from the player's hand and update the game state
         if tile in games[room]['player_tiles'][request.sid]:
+            print("found tile in player hand")
             games[room]['player_tiles'][request.sid].remove(tile)
             games[room]['tiles'].append(tile)  # Place it on the board
     

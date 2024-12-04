@@ -1,7 +1,7 @@
-from enum import IntEnum
+from enum import Enum
 
-class Color(IntEnum):
-    BLACK = 1
-    YELLOW = 2
-    BLUE = 3
-    RED = 4
+class Color(Enum):
+    BLACK = "BLACK"
+    YELLOW = "YELLOW"
+    BLUE = "BLUE"
+    RED = "RED"
