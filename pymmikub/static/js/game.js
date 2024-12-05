@@ -5,10 +5,13 @@ socket.emit('join_game', { room: 'default' });
 
 socket.on('game_update', function(data) {
     // Update game board and player hand
-    document.getElementById('tiles').innerHTML = data.tiles.join(', ');
+    document.getElementById('tiles').innerHTML = data.tiles.map(tile => {
+        return `<span style="color:${tile[1]}">${tile[0]}</span>`;
+    }).join(', ');
+    
     const playerTiles = data.player_tiles[socket.id];
     document.getElementById('player-tiles').innerHTML = playerTiles.map(tile => {
-        return `<span onclick="placeTile(${tile})">${tile}</span>`;
+        return `<span onclick="placeTile([${tile[0]},'${tile[1]}'])" style="color:${tile[1]}">${tile[0]}</span>`;
     }).join(', ');
 });
 

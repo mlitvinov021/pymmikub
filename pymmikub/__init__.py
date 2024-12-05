@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
+from pymmikub.game.game import Game
 from . import db
 
 # blueprint imports
@@ -43,6 +44,8 @@ def create_app(test_config=None):
         join_room(room)
 
         if room not in games:
+            game: Game = Game()
+
             games[room] = {
                 'players': [],
                 'tiles': [],  # Main pool of tiles
@@ -50,20 +53,18 @@ def create_app(test_config=None):
             }
         
         games[room]['players'].append(request.sid)
-        games[room]['player_tiles'][request.sid] = draw_initial_tiles()
+        games[room]['player_tiles'][request.sid] = game.draw_tile(14)
 
         emit('game_update', games[room], room=room)
 
-    def draw_initial_tiles():
-        # Returns a list of 14 tiles (just for demonstration purposes)
-        return [random.randint(1, 104) for _ in range(14)]
 
     @socketio.on('place_tile')
     def handle_place_tile(data):
         room = data['room']
-        tile = data['tile']
+        tile = tuple(data['tile'])
         # Remove the tile from the player's hand and update the game state
         if tile in games[room]['player_tiles'][request.sid]:
+            print("found tile in player hand")
             games[room]['player_tiles'][request.sid].remove(tile)
             games[room]['tiles'].append(tile)  # Place it on the board
     
