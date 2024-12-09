@@ -10,14 +10,14 @@ socket.on('game_update', function(data) {
     // Update game board and player hand
     document.getElementById('tiles').innerHTML = data[room].board.map(combo => {
         return combo.map(tile => {
-            return `<span style="color:${tile[1]}">${tile[0]}</span>`;
-        });
+            return `<span class="tile ${tile[1]}" style="color:${tile[1]}">${tile[0]}</span>`;
+        }).join('');
     }).join('\n')
 
     const playerTiles = data[room].hand;
     document.getElementById('player-tiles').innerHTML = playerTiles.map(tile => {
-        return `<span onclick="placeTile([${tile[0]},'${tile[1]}'], 0, 0)" style="color:${tile[1]}">${tile[0]}</span>`;
-    }).join(', ');
+        return `<span onclick="placeTile([${tile[0]},'${tile[1]}'], 0, 0)" class="tile ${tile[1]}" style="color:${tile[1]}">${tile[0]}</span>`;
+    }).join('');
     
     const elements = document.querySelectorAll('.combination');
 
