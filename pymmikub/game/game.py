@@ -2,23 +2,35 @@ from typing import List
 from .color import Color
 from collections import Counter
 import random
-
+from json import JSONEncoder
 
 class Player:
     hand: List[tuple[int, Color]] = []
     name: str
-    uuid: str
+    sid = None
 
     has_entered: bool
     has_placed: bool
 
 
-    def __init__(self, name) -> None:
+    def __init__(self, sid, name: str) -> None:
+        self.sid = sid
         self.name = name
+
+
+    def to_dict(self):
+        return {
+            "name" : self.name,
+            "hand" : [(tile[0], str(tile[1])) for tile in self.hand],
+        }
 
 
 class Combination:
     tiles: List[tuple[int, Color]] = []
+
+
+    def insert_tile(self, tile: tuple[int, Color], position: int):
+        self.tiles.insert(position, tile)
 
 
     def check_validity(self) -> bool:
@@ -41,11 +53,16 @@ class Combination:
             return True
         
         return False
+    
+    
+    def to_dict(self):
+        return [(tile[0], str(tile[1])) for tile in self.tiles]
 
 
 class Board:
     combos: List[Combination] = []
 
+    combos.append(Combination())
 
     def check_valid_board(self) -> bool:
         for combo in self.combos:
@@ -55,40 +72,60 @@ class Board:
 
 
 class Game:
+    room: str = ""
+    
     tiles: List[tuple[int, Color]] = []
-    players: List[Player] = []
-    current_player: Player
-    current_turn: int
+    board: Board = Board()
+    players: dict[str, Player] = {}
 
 
-    def __init__(self) -> None:
+    def __init__(self, room: str) -> None:
         self.initialize_tiles()
-        current_turn = 0
+        self.room = room
 
 
     def initialize_tiles(self) -> None:
         for color in Color:
             for j in range(1, 13):
-                self.tiles.append((j, color.value))
+                self.tiles.extend([(j, color.value), (j, color.value)])
         # TODO: add jokers
         random.shuffle(self.tiles)
 
 
     def draw_tile(self, n: int = 1) -> List[tuple[int, Color]]:
-        # drawn_tiles: List[tuple[int, Color]] = []
+        # figure out what to do if there are not enough tiles in heap
         drawn_tiles = self.tiles[:n]
 
         return drawn_tiles
 
 
-    def change_turn(self) -> None:
-        current_turn += 1
-        current_player = self.players[current_turn % self.players.length]
+    def place_tile(self, player: Player, tile: tuple[int, Color], combo: Combination, position: int) -> None:
+        # TODO: check for player turn
+        #if player != self.current_player:
+        #    return
+        
+        if tile in player.hand:
+            combo.insert_tile(tile, position)
+            player.hand.remove(tile)
 
 
-    def place_tile(self, player: Player, tile: tuple[int, Color], combo: Combination) -> None:
-        if player != self.current_player:
-            return
-        if player.hand.pop(tile) == None:
-            return
-        combo.append(tile)
+    def connect_player(self, sid, name: str) -> None:
+        player: Player = Player(sid, name)
+        self.players.update({sid: player})
+        player.hand = self.draw_tile(14)
+
+
+class GameEncoder():
+    def encode(o, sid) -> dict:
+        if isinstance(o, Game):
+            roominfo = {
+                #"tiles": [(tile[0], str(tile[1])) for tile in o.tiles],
+                "tiles": len(o.tiles),
+                "board": [combo.tiles for combo in o.board.combos],
+                "hand" : o.players.get(sid).hand,
+                "players": [player for player in o.players]
+                }
+            gameinfo = {o.room : roominfo}
+            return gameinfo
+        else:
+            return ""

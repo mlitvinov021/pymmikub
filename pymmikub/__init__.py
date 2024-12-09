@@ -1,10 +1,12 @@
 import os
 
-from flask import Flask, render_template, request
+from flask import Flask, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
-from pymmikub.game.game import Game
+from pymmikub.game.color import Color
+from pymmikub.game.game import Combination, Game, GameEncoder, Player
 from . import db
+import json
 
 # blueprint imports
 from .auth import auth as auth_blueprint
@@ -12,10 +14,11 @@ from .main import main as main_blueprint
 
 
 def create_app(test_config=None):
-    app = Flask(__name__, instance_relative_config=True)
-    socketio = SocketIO(app)
+    app: Flask = Flask(__name__, instance_relative_config=True)
+    socketio: SocketIO = SocketIO(app)
 
     games = {}
+    playernames = {}
 
     app.config.from_mapping(
         SECRET_KEY='dev',
@@ -38,36 +41,39 @@ def create_app(test_config=None):
     app.register_blueprint(main_blueprint)
     app.register_blueprint(auth_blueprint)
     
+    
     @socketio.on('join_game')
     def handle_join_game(data):
-        room = data['room']
+        room: str = data['room']
+
+        # TODO: of course set the actual player name
+        playernames[request.sid] = request.sid
+
         join_room(room)
 
         if room not in games:
-            game: Game = Game()
+            game: Game = Game(room)
+            games.update({room: game})
 
-            games[room] = {
-                'players': [],
-                'tiles': [],  # Main pool of tiles
-                'player_tiles': {}  # Tiles held by each player
-            }
         
-        games[room]['players'].append(request.sid)
-        games[room]['player_tiles'][request.sid] = game.draw_tile(14)
+        games.get(room).connect_player(request.sid, playernames.get(request.sid))
+        data = GameEncoder.encode(games.get(room), request.sid)
+        emit('game_update', data)
 
-        emit('game_update', games[room], room=room)
 
-
+    # TODO: this should update the game state in game object (MODEL), update the games[room] and emit the signal for the VIEW
     @socketio.on('place_tile')
     def handle_place_tile(data):
-        room = data['room']
-        tile = tuple(data['tile'])
-        # Remove the tile from the player's hand and update the game state
-        if tile in games[room]['player_tiles'][request.sid]:
-            print("found tile in player hand")
-            games[room]['player_tiles'][request.sid].remove(tile)
-            games[room]['tiles'].append(tile)  # Place it on the board
-    
-        emit('game_update', games[room], room=room)
+        room: Game = games[data['room']]
+        tile: tuple[int, Color] = tuple(data['tile'])
+        player: Player = room.players[request.sid]
+        combo: Combination = room.board.combos[data['combo']]
+        position: int = data['position']
+
+        room.place_tile(player, tile, combo, position)
+
+        data = GameEncoder.encode(room, request.sid)
+        emit('game_update', data)
+
 
     return app

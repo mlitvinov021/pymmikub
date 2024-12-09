@@ -1,19 +1,22 @@
 const socket = io.connect('http://' + document.domain + ':' + location.port);
 
-// Join the game
-socket.emit('join_game', { room: 'default' });
+const room = 'default'
 
+// Join the game
+socket.emit('join_game', { room: room });
 
 
 socket.on('game_update', function(data) {
     // Update game board and player hand
-    document.getElementById('tiles').innerHTML = data.tiles.map(tile => {
-        return `<span style="color:${tile[1]}">${tile[0]}</span>`;
-    }).join(', ');
-    
-    const playerTiles = data.player_tiles[socket.id];
+    document.getElementById('tiles').innerHTML = data[room].board.map(combo => {
+        return combo.map(tile => {
+            return `<span style="color:${tile[1]}">${tile[0]}</span>`;
+        });
+    }).join('\n')
+
+    const playerTiles = data[room].hand;
     document.getElementById('player-tiles').innerHTML = playerTiles.map(tile => {
-        return `<span onclick="placeTile([${tile[0]},'${tile[1]}'])" style="color:${tile[1]}">${tile[0]}</span>`;
+        return `<span onclick="placeTile([${tile[0]},'${tile[1]}'], 0, 0)" style="color:${tile[1]}">${tile[0]}</span>`;
     }).join(', ');
     
     const elements = document.querySelectorAll('.combination');
@@ -32,6 +35,7 @@ socket.on('game_update', function(data) {
     comboGrid.appendChild(newDiv);
 });
 
-function placeTile(tile) {
-    socket.emit('place_tile', { room: 'default', tile: tile });
+
+function placeTile(tile, combo, position) {
+    socket.emit('place_tile', { room: room, tile: tile, combo: combo, position: position });
 }
