@@ -7,13 +7,13 @@ from json import JSONEncoder
 class Player:
     hand: List[tuple[int, Color]] = []
     name: str
-    sid = None
+    sid: str
 
     has_entered: bool
     has_placed: bool
 
 
-    def __init__(self, sid, name: str) -> None:
+    def __init__(self, sid: str, name: str) -> None:
         self.sid = sid
         self.name = name
 
@@ -27,6 +27,10 @@ class Player:
 
 class Combination:
     tiles: List[tuple[int, Color]] = []
+
+
+    def __init__(self):
+        self.tiles = []
 
 
     def insert_tile(self, tile: tuple[int, Color], position: int):
@@ -62,13 +66,20 @@ class Combination:
 class Board:
     combos: List[Combination] = []
 
-    combos.append(Combination())
+    def __init__(self):
+        self.refresh_board()
+
 
     def check_valid_board(self) -> bool:
         for combo in self.combos:
             if combo.check_validity() == False:
                 return False
         return True
+    
+
+    def refresh_board(self) -> None:
+        self.combos = [combo for combo in self.combos if len(combo.tiles) > 0]
+        self.combos.append(Combination())
 
 
 class Game:
@@ -104,9 +115,13 @@ class Game:
         #if player != self.current_player:
         #    return
         
+        # TODO: switch tiles on board
+
         if tile in player.hand:
             combo.insert_tile(tile, position)
             player.hand.remove(tile)
+        
+        self.board.refresh_board()
 
 
     def connect_player(self, sid, name: str) -> None:

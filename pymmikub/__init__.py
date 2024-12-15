@@ -65,10 +65,10 @@ def create_app(test_config=None):
     @socketio.on('place_tile')
     def handle_place_tile(data):
         room: Game = games[data['room']]
-        tile: tuple[int, Color] = tuple(data['tile'])
         player: Player = room.players[request.sid]
-        combo: Combination = room.board.combos[data['combo']]
-        position: int = data['position']
+        tile: tuple[int, Color] = tuple(data['tile'])
+        combo: Combination = room.board.combos[int(data['combo']) - 1]
+        position: int = int(data['position'])
 
         room.place_tile(player, tile, combo, position)
 
