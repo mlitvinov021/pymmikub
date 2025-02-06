@@ -4,7 +4,7 @@ from flask import Flask, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
 from pymmikub.game.color import Color
-from pymmikub.game.game import Combination, Game, GameEncoder, Player
+from pymmikub.game.game import Combination, Game, GameEncoder, Player, Tile
 from . import db
 import json
 
@@ -66,11 +66,17 @@ def create_app(test_config=None):
     def handle_place_tile(data):
         room: Game = games[data['room']]
         player: Player = room.players[request.sid]
-        tile: tuple[int, Color] = tuple(data['tile'])
-        combo: Combination = room.board.combos[int(data['combo']) - 1]
-        position: int = int(data['position'])
+        tile: Tile = Tile(data['tile']['number'], Color(data['tile']['color']), True, data['tile']['id'])
+        origin: Combination = room.board.combos[int(data['origin']) - 1]
 
-        room.place_tile(player, tile, combo, position)
+        if int(data['target']) == 0:
+            target: Combination = player.hand
+        else:
+            target: Combination = room.board.combos[int(data['target']) - 1]
+        
+        position: int = int(data['position'])
+        
+        room.place_tile(player, tile, origin, target, position)
 
         data = GameEncoder.encode(room, request.sid)
         emit('game_update', data)

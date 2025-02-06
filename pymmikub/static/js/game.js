@@ -16,10 +16,10 @@ socket.on('game_update', function(data) {
         }).join('');
         
         if (tiles.length === 0) {
-            return comb(placer(comboIndex + 1, 0));
+            return comb(comboIndex + 1, placer(comboIndex + 1, 0));
         }
 
-        return comb(placer(comboIndex + 1, 0) + tiles);
+        return comb(comboIndex + 1, placer(comboIndex + 1, 0) + tiles);
     }).join('');
 
     // Update player hand
@@ -31,24 +31,16 @@ socket.on('game_update', function(data) {
 });
 
 
-function placeTile(tileId, combo, position) {
+function placeTile(tileId, origin, target, position) {
     const tileNumber = document.getElementById(tileId).dataset.tileNumber;
     const tileColor = document.getElementById(tileId).dataset.tileColor;
 
-    socket.emit('place_tile', { room: room, tile: [parseInt(tileNumber), tileColor], combo: combo, position: position });
+    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: true}, origin: origin, target: target, position: position });
 }
 
 // TODO: ability to change order of tiles in player hand, client-side
 function shuffleHand(tileId, position) {
     console.log('tried to shuffle hand');
-}
-
-
-function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
 }
 
 
@@ -60,6 +52,7 @@ function allowDrop(ev) {
 
 function drag(ev) {
     ev.dataTransfer.setData("id", ev.target.id);
+    ev.dataTransfer.setData("origin", ev.target.parentElement.dataset.combo);
 }
 
 
@@ -72,49 +65,85 @@ function drop(ev) {
     ev.preventDefault();
 
     const tileId = ev.dataTransfer.getData("id");
-    const combo = parseInt(ev.target.dataset.combo);
+    const origin = parseInt(ev.dataTransfer.getData("origin"));
+    const target = parseInt(ev.target.dataset.combo);
     const position = parseInt(ev.target.dataset.position);
 
     ev.target.style.width = "5px";
 
-    if(combo === 0) {
+    // four cases:
+    // 1. origin = 0, target = 0: shuffle hand
+    // 2. origin = 0, target > 0: place tile
+    // 3. origin > 0, target = 0: remove tile
+    // 4. origin > 0, target > 0: move tile
+
+    if (origin === 0 && target === 0) {
         shuffleHand(tileId, position);
     }
     else {
-        placeTile(tileId, combo, position);
+        placeTile(tileId, origin, target, position);
     }
+    
+    /*
+    if(origin === 0) {
+        if(target === 0) {
+            shuffleHand(tileId, position);
+        }
+        else {
+            placeTile(tileId, target, position);
+        }
+    }
+    else {
+        if(target === 0) {
+            // remove tile
+        }
+        else {
+            // move tile
+        }
+    }
+    */
+    /*
+    if(target === 0) {
+        shuffleHand(tileId, position);
+    }
+    else {
+        placeTile(tileId, target, position);
+    }
+    */
 }
 
 
 function tile(tileInfo) {
     var tile = document.createElement('span');
-    tile.setAttribute('id', generateUUID());
+    tile.setAttribute('id', tileInfo.id);
     tile.setAttribute('draggable', 'true');
     tile.setAttribute('ondragstart', 'drag(event)');
-    tile.setAttribute('class', 'tile ' + tileInfo[1]);
-    tile.setAttribute('data-tile-number', tileInfo[0]);
-    tile.setAttribute('data-tile-color', tileInfo[1]);
-    tile.appendChild(document.createTextNode(tileInfo[0]));
+    tile.setAttribute('class', 'tile ' + tileInfo.color + ' ' + (tileInfo.is_new ? 'new' : ''));
+    tile.setAttribute('data-tile-number', tileInfo.number);
+    tile.setAttribute('data-tile-color', tileInfo.color);
+    tile.setAttribute('data-tile-isnew', tileInfo.is_new);
+    tile.appendChild(document.createTextNode(tileInfo.number));
     return tile.outerHTML;
 }
 
 
-function placer(combo, position) {
+function placer(comboIndex, position) {
     var placer = document.createElement('span');
     placer.setAttribute('ondrop', 'drop(event)');
     placer.setAttribute('ondragover', 'allowDrop(event)');
     placer.setAttribute('ondragleave', 'leave(event)');
     placer.setAttribute('class', 'placer');
-    placer.setAttribute('data-combo', combo);
+    placer.setAttribute('data-combo', comboIndex);
     placer.setAttribute('data-position', position);
     placer.appendChild(document.createTextNode(`\u00a0`));
     return placer.outerHTML;
 }
 
 
-function comb(content) {
+function comb(comboIndex, content) {
     var combo = document.createElement('div');
     combo.setAttribute('class', 'combination');
+    combo.setAttribute('data-combo', comboIndex);
     combo.innerHTML = content;
     return combo.outerHTML;
 }
