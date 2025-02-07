@@ -38,3 +38,36 @@ body {
     font-size: 16px;
     font-weight: bold;
 }
+
+.tile {
+    display: inline-block;
+    width: 50px; /* Tile width */
+    height: 80px; /* Tile height */
+    margin: 2px; /* Space between tiles */
+    background-color: #aaa; /* Base background color */
+    border: 2px solid black; /* Black border for clarity */
+    border-radius: 10px; /* Rounded corners */
+    text-align: center; /* Center the text horizontally */
+    position: relative; /* Enable precise positioning for content */
+    font-family: Arial, sans-serif; /* Clear and readable font */
+    font-size: 24px; /* Big font size for the number */
+    font-weight: bold; /* Make the number bold */
+    color: white; /* Default text color */
+}
+
+/* Example color styles */
+.RED { color: red; }
+.BLUE { color: blue; }
+.YELLOW { color: yellow; }
+.BLACK { color: black; }
+
+.new {border-color: red;}
+
+.placer {
+    display: inline-block;
+    position: relative; /* Enable precise positioning for content */
+    width: 5px;
+    height: 80px;
+    border: 1px dotted black;
+    border-radius: 10px;
+}
