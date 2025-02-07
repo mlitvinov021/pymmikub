@@ -149,14 +149,18 @@ class Game:
 
 
     def place_tile(self, player: Player, tile: Tile, origin: Combination, target: Combination, position: int) -> None:
+        # shuffle tiles in hand, should be able to do even if it's not your turn
+        if tile in player.hand.tiles and target == player.hand:
+            player.hand.tiles.remove(tile)
+            target.insert_tile(tile, position)
+            return
+        
         # TODO: check for player turn
         #if player != self.current_player:
         #    return
-        
-        # TODO: switch tiles on board
 
         # if tile is in hand, place it on board
-        if tile in player.hand.tiles:
+        if tile in player.hand.tiles and target != player.hand:
             target.insert_tile(tile, position)
             player.hand.tiles.remove(tile)
         # else if target is hand

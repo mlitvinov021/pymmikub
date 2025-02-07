@@ -31,19 +31,6 @@ socket.on('game_update', function(data) {
 });
 
 
-function placeTile(tileId, origin, target, position) {
-    const tileNumber = document.getElementById(tileId).dataset.tileNumber;
-    const tileColor = document.getElementById(tileId).dataset.tileColor;
-
-    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: true}, origin: origin, target: target, position: position });
-}
-
-// TODO: ability to change order of tiles in player hand, client-side
-function shuffleHand(tileId, position) {
-    console.log('tried to shuffle hand');
-}
-
-
 function allowDrop(ev) {
     ev.preventDefault();
     ev.target.style.width = '50px';
@@ -71,45 +58,15 @@ function drop(ev) {
 
     ev.target.style.width = "5px";
 
-    // four cases:
-    // 1. origin = 0, target = 0: shuffle hand
-    // 2. origin = 0, target > 0: place tile
-    // 3. origin > 0, target = 0: remove tile
-    // 4. origin > 0, target > 0: move tile
+    placeTile(tileId, origin, target, position);
+}
 
-    if (origin === 0 && target === 0) {
-        shuffleHand(tileId, position);
-    }
-    else {
-        placeTile(tileId, origin, target, position);
-    }
-    
-    /*
-    if(origin === 0) {
-        if(target === 0) {
-            shuffleHand(tileId, position);
-        }
-        else {
-            placeTile(tileId, target, position);
-        }
-    }
-    else {
-        if(target === 0) {
-            // remove tile
-        }
-        else {
-            // move tile
-        }
-    }
-    */
-    /*
-    if(target === 0) {
-        shuffleHand(tileId, position);
-    }
-    else {
-        placeTile(tileId, target, position);
-    }
-    */
+
+function placeTile(tileId, origin, target, position) {
+    const tileNumber = document.getElementById(tileId).dataset.tileNumber;
+    const tileColor = document.getElementById(tileId).dataset.tileColor;
+
+    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: true}, origin: origin, target: target, position: position });
 }
 
 
