@@ -82,4 +82,12 @@ def create_app(test_config=None):
         emit('game_update', data)
 
 
+    @socketio.on('end_turn')
+    def handle_end_turn(data):
+        room: Game = games[data['room']]
+        room.end_turn()
+        data = GameEncoder.encode(room, request.sid)
+        emit('game_update', data)
+
+
     return app

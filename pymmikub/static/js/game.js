@@ -104,3 +104,8 @@ function comb(comboIndex, content) {
     combo.innerHTML = content;
     return combo.outerHTML;
 }
+
+
+function endTurn() {
+    socket.emit('end_turn', { room: room });
+}
