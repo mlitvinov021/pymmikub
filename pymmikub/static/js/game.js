@@ -65,8 +65,9 @@ function drop(ev) {
 function placeTile(tileId, origin, target, position) {
     const tileNumber = document.getElementById(tileId).dataset.tileNumber;
     const tileColor = document.getElementById(tileId).dataset.tileColor;
+    const tileIsNew = document.getElementById(tileId).dataset.tileIsnew;
 
-    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: true}, origin: origin, target: target, position: position });
+    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: tileIsNew}, origin: origin, target: target, position: position });
 }
 
 

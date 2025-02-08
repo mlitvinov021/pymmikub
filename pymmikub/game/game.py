@@ -2,7 +2,6 @@ from typing import List
 from .color import Color
 from dataclasses import dataclass
 from itertools import cycle
-from flask_socketio import emit
 import random
 import uuid
 
@@ -178,7 +177,7 @@ class Game:
             target.insert_tile(tile, position)
             player.hand.tiles.remove(tile)
         # else if target is hand
-        elif tile not in player.hand.tiles and target == player.hand and tile.is_new:
+        elif tile not in player.hand.tiles and target == player.hand and tile.is_new == True:
             player.hand.insert_tile(tile, position)
             origin.tiles.remove(tile)
         # else if target is board

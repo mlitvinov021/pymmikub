@@ -61,12 +61,11 @@ def create_app(test_config=None):
         emit('game_update', data)
 
 
-    # TODO: this should update the game state in game object (MODEL), update the games[room] and emit the signal for the VIEW
     @socketio.on('place_tile')
     def handle_place_tile(data):
         room: Game = games[data['room']]
         player: Player = room.players[request.sid]
-        tile: Tile = Tile(data['tile']['number'], Color(data['tile']['color']), True, data['tile']['id'])
+        tile: Tile = Tile(data['tile']['number'], Color(data['tile']['color']), data['tile']['is_new'], data['tile']['id'])
         origin: Combination = room.board.combos[int(data['origin']) - 1]
 
         if int(data['target']) == 0:
