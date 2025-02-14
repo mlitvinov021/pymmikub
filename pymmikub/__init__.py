@@ -17,8 +17,8 @@ def create_app(test_config=None):
     app: Flask = Flask(__name__, instance_relative_config=True)
     socketio: SocketIO = SocketIO(app)
 
-    games = {}
-    playernames = {}
+    games: dict[str, Game] = {}
+    playernames: dict[str, str] = {}
 
     app.config.from_mapping(
         SECRET_KEY='dev',

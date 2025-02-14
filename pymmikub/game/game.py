@@ -147,16 +147,18 @@ class Game:
 
 
     def initialize_tiles(self) -> None:
+        # i in range (2, 28) and floor division by 2 gives us two tiles of each number
         for color in Color:
-            for i in range(1, 13):
-                self.tiles.extend([Tile(i, color, True)])
+            for i in range(2, 28):
+                self.tiles.extend([Tile(i // 2, color, True)])
+        
         # TODO: add jokers
         random.shuffle(self.tiles)
 
 
     def draw_tile(self, n: int = 1) -> List[Tile]:
         # figure out what to do if there are not enough tiles in heap
-        drawn_tiles = self.tiles[:n]
+        drawn_tiles, self.tiles = self.tiles[:n], self.tiles[n:]
 
         return drawn_tiles
 
@@ -192,9 +194,8 @@ class Game:
         player: Player = Player(sid, name)
         self.players.update({sid: player})
         
-        drawn_tiles = self.draw_tile(14)
-        for tile in drawn_tiles:
-            player.hand.insert_tile(tile, 0)
+        player.hand = Combination()
+        player.hand.tiles = self.draw_tile(14)
         
         if self.current_player == "":
             self.current_player = sid
