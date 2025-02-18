@@ -3,6 +3,16 @@
 {% block content %}
 <div id="game-board">
     <h2>Game Board</h2>
+    <div id="player-list" class="player-list">
+        <h3>Players in Lobby:</h3>
+        <ul id="players"></ul>
+    </div>
+    <div id="turn-indicator">
+        <strong>Current Turn:</strong> <span id="current-player">Waiting...</span>
+    </div>
+    <div id="tile-count">
+        <strong>Remaining Tiles:</strong> <span id="remaining-tiles">104</span>
+    </div>
     <div>
         <button id="end-turn" class="btn" onclick="endTurn()">End Turn</button>
     </div>

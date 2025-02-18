@@ -2,6 +2,7 @@ from typing import List
 from .color import Color
 from dataclasses import dataclass
 from itertools import cycle
+from flask_socketio import emit
 import random
 import uuid
 
@@ -82,7 +83,10 @@ class Combination:
     
     
     def to_dict(self) -> List[dict]:
-        return [tile.to_dict() for tile in self.tiles]
+        data: dict = {}
+        data.update({"is_valid" : self.check_validity()})
+        data.update({"tiles" : [tile.to_dict() for tile in self.tiles]})
+        return data
     
 
     def __eq__(self, value) -> bool:
@@ -96,7 +100,6 @@ class Player:
     sid: str
 
     has_entered: bool = False
-    has_placed: bool = False
 
 
     def __init__(self, sid: str, name: str) -> None:
@@ -161,6 +164,11 @@ class Game:
         drawn_tiles, self.tiles = self.tiles[:n], self.tiles[n:]
 
         return drawn_tiles
+    
+
+    def has_current_player_moved(self) -> bool:
+        return len(self.players.get(self.current_player).hand.tiles) != self.tile_count
+
 
 
     def place_tile(self, player: Player, tile: Tile, origin: Combination, target: Combination, position: int) -> None:
@@ -169,7 +177,7 @@ class Game:
             player.hand.tiles.remove(tile)
             target.insert_tile(tile, position)
             return
-        
+
         # check for player turn
         if player != self.players.get(self.current_player):
             return
@@ -179,11 +187,11 @@ class Game:
             target.insert_tile(tile, position)
             player.hand.tiles.remove(tile)
         # else if target is hand
-        elif tile not in player.hand.tiles and target == player.hand and tile.is_new == True:
+        elif not (tile in player.hand.tiles) and target == player.hand and tile.is_new:
             player.hand.insert_tile(tile, position)
             origin.tiles.remove(tile)
         # else if target is board
-        else:
+        elif tile not in player.hand.tiles and target != player.hand:
             target.insert_tile(tile, position)
             origin.tiles.remove(tile)
 
@@ -200,6 +208,9 @@ class Game:
         if self.current_player == "":
             self.current_player = sid
             self.tile_count = 14
+        
+        emit('lobby_update', {"players" : [*self.players]})
+        emit('turn_update', {"current_player" : self.current_player, "remaining_tiles" : len(self.tiles)})
     
 
     def end_turn(self) -> None:
@@ -217,6 +228,8 @@ class Game:
             for tile in combo.tiles:
                 tile.is_new = False
         
+        emit('turn_update', {"current_player" : self.current_player, "remaining_tiles" : len(self.tiles)})
+        
 
 class GameEncoder():
     def encode(o, sid) -> dict:
@@ -226,7 +239,8 @@ class GameEncoder():
                 "tiles": len(o.tiles),
                 "board": [combo.to_dict() for combo in o.board.combos],
                 "hand" : o.players.get(sid).hand.to_dict(),
-                "players": [player for player in o.players]
+                "players": [player for player in o.players],
+                "has_player_moved": o.has_current_player_moved(),
                 }
             gameinfo = {o.room : roominfo}
             return gameinfo

@@ -65,7 +65,8 @@ def create_app(test_config=None):
     def handle_place_tile(data):
         room: Game = games[data['room']]
         player: Player = room.players[request.sid]
-        tile: Tile = Tile(data['tile']['number'], Color(data['tile']['color']), data['tile']['is_new'], data['tile']['id'])
+        is_new = (lambda x: True if isinstance(x, str) and x.lower() == "true" else False)(data['tile']['is_new'])
+        tile: Tile = Tile(data['tile']['number'], Color(data['tile']['color']), is_new, data['tile']['id'])
         origin: Combination = room.board.combos[int(data['origin']) - 1]
 
         if int(data['target']) == 0:
