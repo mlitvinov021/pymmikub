@@ -34,6 +34,7 @@ body {
     padding: 20px;
     text-align: center;
     border: 1px solid #aaa;
+    border-color: black;
     border-radius: 5px;
     font-size: 16px;
     font-weight: bold;
@@ -61,7 +62,9 @@ body {
 .YELLOW { color: yellow; }
 .BLACK { color: black; }
 
-.new {border-color: red;}
+.new {border-color: green;}
+
+.invalid {border-color: red;}
 
 .placer {
     display: inline-block;

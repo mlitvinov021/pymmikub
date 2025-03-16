@@ -8,26 +8,47 @@ socket.emit('join_game', { room: room });
 socket.on('game_update', function(data) {
     // Update game board
     console.log(data);
-    document.getElementById('combo-grid').innerHTML = data[room].board.map((combo, comboIndex) => {
-        const tiles = data[room].board[comboIndex].map((tileInfo, tileIndex) => {
+    document.getElementById('combo-grid').innerHTML = data[room].board.map((comboInfo, comboIndex) => {
+        const tiles = data[room].board[comboIndex].tiles.map((tileInfo, tileIndex) => {
             const newTile = tile(tileInfo);
             const newPlacer = placer(comboIndex + 1, tileIndex + 1);
             return newTile + newPlacer;
         }).join('');
         
         if (tiles.length === 0) {
-            return comb(comboIndex + 1, placer(comboIndex + 1, 0));
+            return comb(comboIndex + 1, comboInfo.is_valid, placer(comboIndex + 1, 0));
         }
 
-        return comb(comboIndex + 1, placer(comboIndex + 1, 0) + tiles);
+        return comb(comboIndex + 1, comboInfo.is_valid, placer(comboIndex + 1, 0) + tiles);
     }).join('');
 
     // Update player hand
-    document.getElementById('player-tiles').innerHTML = placer(0, 0) + data[room].hand.map((tileInfo, tileIndex) => {
+    document.getElementById('player-tiles').innerHTML = placer(0, 0) + data[room].hand.tiles.map((tileInfo, tileIndex) => {
         const newTile = tile(tileInfo);
         const newPlacer = placer(0, tileIndex + 1);
         return newTile + newPlacer;
     }).join('');
+
+    document.getElementById('end-turn').innerText = data[room].has_player_moved ? 'End Turn' : 'Skip Turn';
+});
+
+
+socket.on('turn_update', function(data) {
+    console.log(data);
+    document.getElementById('current-player').textContent = data.current_player;
+    document.getElementById('remaining-tiles').textContent = data.remaining_tiles;
+});
+
+
+socket.on('lobby_update', function(data) {
+    console.log(data);
+    var playerList = document.getElementById('players');
+    playerList.innerHTML = '';
+    data.players.forEach(function(player) {
+        var li = document.createElement('li');
+        li.textContent = player;
+        playerList.appendChild(li);
+    });
 });
 
 
@@ -65,8 +86,9 @@ function drop(ev) {
 function placeTile(tileId, origin, target, position) {
     const tileNumber = document.getElementById(tileId).dataset.tileNumber;
     const tileColor = document.getElementById(tileId).dataset.tileColor;
+    const tileIsNew = document.getElementById(tileId).dataset.tileIsnew;
 
-    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: true}, origin: origin, target: target, position: position });
+    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: tileIsNew}, origin: origin, target: target, position: position });
 }
 
 
@@ -97,10 +119,15 @@ function placer(comboIndex, position) {
 }
 
 
-function comb(comboIndex, content) {
+function comb(comboIndex, comboValid, content) {
     var combo = document.createElement('div');
-    combo.setAttribute('class', 'combination');
+    combo.setAttribute('class', 'combination ' + (comboValid ? 'valid' : 'invalid'));
     combo.setAttribute('data-combo', comboIndex);
     combo.innerHTML = content;
     return combo.outerHTML;
+}
+
+
+function endTurn() {
+    socket.emit('end_turn', { room: room });
 }
