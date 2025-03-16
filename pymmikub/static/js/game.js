@@ -4,6 +4,7 @@ const room = 'default'
 // Join the game
 socket.emit('join_game', { room: room });
 
+let end_turn_button = document.getElementById('end-turn');
 
 socket.on('game_update', function(data) {
     // Update game board
@@ -37,6 +38,14 @@ socket.on('turn_update', function(data) {
     console.log(data);
     document.getElementById('current-player').textContent = data.current_player;
     document.getElementById('remaining-tiles').textContent = data.remaining_tiles;
+    // set button as active for the current player
+    if(data.current_player === socket.id) {
+        end_turn_button.disabled = false;
+    }
+    else {
+        end_turn_button.disabled = true;
+    }
+        
 });
 
 

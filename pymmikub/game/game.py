@@ -1,7 +1,6 @@
 from typing import List
 from .color import Color
 from dataclasses import dataclass
-from itertools import cycle
 from flask_socketio import emit
 import random
 import uuid
@@ -52,11 +51,9 @@ class Combination:
 
     def check_validity(self) -> bool:
         if len(self.tiles) == 0:
-            print("Combination empty")
             return True
         
         if len(self.tiles) < 3:
-            print("Combination too short")
             return False
 
         numbers: List[int] = [tile.number for tile in self.tiles]
@@ -64,11 +61,6 @@ class Combination:
         colors: List[Color] = [tile.color for tile in self.tiles]
         unique_numbers: int = len(set(numbers))
         unique_colors: int = len(set(colors))
-
-        print(f'numbers: {numbers}')
-        print(f'colors: {colors}')
-        print(f'unique_numbers: {unique_numbers}')
-        print(f'unique_colors: {unique_colors}')
 
         # series of unique numbers of one color
         if unique_numbers == len(numbers) and \
@@ -124,7 +116,6 @@ class Board:
     def check_valid_board(self) -> bool:
         for combo in self.combos:
             if combo.check_validity() == False:
-                print(combo.tiles)
                 return False
         return True
     
@@ -140,7 +131,7 @@ class Game:
     tiles: List[Tile] = []
     board: Board = Board()
     players: dict[str, Player] = {}
-    current_player: str = ""
+    current_player_index: int = 0
     tile_count: int = 0
 
 
@@ -148,6 +139,10 @@ class Game:
         self.initialize_tiles()
         self.room = room
 
+
+    def get_current_player(self) -> Player:
+        return list(self.players.values())[self.current_player_index]
+    
 
     def initialize_tiles(self) -> None:
         # i in range (2, 28) and floor division by 2 gives us two tiles of each number
@@ -160,15 +155,14 @@ class Game:
 
 
     def draw_tile(self, n: int = 1) -> List[Tile]:
-        # figure out what to do if there are not enough tiles in heap
+        # TODO: figure out what to do if there are not enough tiles in heap
         drawn_tiles, self.tiles = self.tiles[:n], self.tiles[n:]
 
         return drawn_tiles
     
 
     def has_current_player_moved(self) -> bool:
-        return len(self.players.get(self.current_player).hand.tiles) != self.tile_count
-
+        return len(self.get_current_player().hand.tiles) != self.tile_count
 
 
     def place_tile(self, player: Player, tile: Tile, origin: Combination, target: Combination, position: int) -> None:
@@ -179,7 +173,7 @@ class Game:
             return
 
         # check for player turn
-        if player != self.players.get(self.current_player):
+        if player != self.get_current_player():
             return
 
         # if tile is in hand, place it on board
@@ -198,37 +192,65 @@ class Game:
         self.board.refresh_board()
 
 
-    def connect_player(self, sid, name: str) -> None:
+    def connect_player(self, sid: str, name: str) -> None:
         player: Player = Player(sid, name)
         self.players.update({sid: player})
         
         player.hand = Combination()
         player.hand.tiles = self.draw_tile(14)
         
-        if self.current_player == "":
-            self.current_player = sid
+        #if self.current_player == "":
+        #    self.current_player = sid
+        #    self.tile_count = 14
+        
+        if len(self.players) == 1:  # If first player joins, start game
+            self.current_player_index = 0
             self.tile_count = 14
-        
-        emit('lobby_update', {"players" : [*self.players]})
-        emit('turn_update', {"current_player" : self.current_player, "remaining_tiles" : len(self.tiles)})
+
+        emit('lobby_update', {"players" : [*self.players]}, to=self.room)
+        emit('turn_update', {"current_player" : self.get_current_player().name, "remaining_tiles" : len(self.tiles)}, to=self.room)
     
+    
+    def disconnect_player(self, sid: str) -> None:
+        if sid in self.players:
+            idx = self.players.index(sid)
+            self.players.remove(sid)
 
-    def end_turn(self) -> None:
-        p : Player = self.players.get(self.current_player)
+            # Adjust turn index to ensure it remains valid
+            if idx < self.current_player_index:
+                self.current_player_index -= 1
+            elif self.current_player_index >= len(self.players):
+                self.current_player_index = 0  # Reset to first player
         
-        if not self.board.check_valid_board():
+        #TODO: actual disconnect
+
+
+    def end_turn(self, player: Player) -> None:
+        current_player : Player = self.get_current_player()
+        
+        # Check if the function was called by a current player
+        if player != current_player:
+            # TODO: error message (cannot end other player turn)
             return
-        if len(p.hand.tiles) == self.tile_count:
-            p.hand.tiles.append(self.draw_tile(1)[0])
         
-        self.current_player = next(iter(cycle(self.players)))
-        self.tile_count = len(p.hand.tiles)
+        # Check whether we need to end current player turn or skip it
+        if not self.board.check_valid_board():
+            # TODO: error message (invalid board)
+            return
+        if len(current_player.hand.tiles) == self.tile_count:
+            current_player.hand.tiles.append(self.draw_tile(1)[0])
+        
+        # Advance current player index
+        if self.players:
+            self.current_player_index = (self.current_player_index + 1) % len(self.players)
+            self.tile_count = len(self.get_current_player().hand.tiles)
 
+        # Set all tiles on board as old
         for combo in self.board.combos:
             for tile in combo.tiles:
                 tile.is_new = False
         
-        emit('turn_update', {"current_player" : self.current_player, "remaining_tiles" : len(self.tiles)})
+        emit('turn_update', {"current_player" : self.get_current_player().name, "remaining_tiles" : len(self.tiles)}, to=self.room)
         
 
 class GameEncoder():
