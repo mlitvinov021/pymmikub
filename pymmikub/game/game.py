@@ -6,7 +6,6 @@ import random
 import uuid
 
 
-@dataclass
 class Tile:
     id: str
     number: int
@@ -258,8 +257,40 @@ class Game:
         for combo in self.board.combos:
             for tile in combo.tiles:
                 tile.is_new = False
+
+        # Check for a win condition
+        if len(player.hand.tiles) == 0:
+            self.end_game()
         
         emit('turn_update', {"current_player" : self.get_current_player().name, "remaining_tiles" : len(self.tiles)}, to=self.room)
+    
+    
+    def end_game(self):
+        # Make all of the tiles old so they cant be placed or moved.
+        for combo in self.board.combos:
+            for tile in combo.tiles:
+                tile.is_new = False
+        
+        for player in self.players.values():
+            for tile in player.hand.tiles:
+                tile.is_new = False
+        
+        # TODO: remove the ability to end turns.
+
+        # Count player scores by adding up numbers on tiles.
+        scores: dict[str, int] = {}
+        for player in self.players.values():
+            score: int = 0
+            for tile in player.hand.tiles:
+                if tile.color != Color.JOKER:
+                    score += tile.number
+                else:
+                    score += 30
+            scores.update([player.name, score])
+        # Sort the scores.
+        scores = dict(sorted(scores.items(), key = lambda x:x[1]))
+        # Show table with scores.
+        print(scores)
         
 
 class GameEncoder():
