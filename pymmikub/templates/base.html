@@ -4,44 +4,31 @@
 <head>
     <meta charset="utf-8">
     <title>Pymmikub</title>
-    <link rel="stylesheet" href="../static/css/styles.css"></style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"></style>
 </head>
 
 <body>
-    <section>
-        <div class="head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-menu">
-                        <div class="navbar-end">
-                            <a href="{{ url_for('main.index') }}" class="navbar-item">
-                                Play
-                            </a>
-                            <a href="{{ url_for('main.profile') }}" class="navbar-item">
-                                Profile
-                            </a>
-                            <a href="{{ url_for('auth.login') }}" class="navbar-item">
-                                Login
-                            </a>
-                            <a href="{{ url_for('auth.signup') }}" class="navbar-item">
-                                Sign Up
-                            </a>
-                            <a href="{{ url_for('auth.logout') }}" class="navbar-item">
-                                Logout
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
+    <div class="top-bar">
+        <button class="burger-menu">&#9776;</button>
+        <div class="game-title">Pymmikub</div>
+        <div class="lobby-name" id="lobby-name">Lobby Name</div>
+    </div>
 
-        <div class="body">
-            <div>
-               {% block content %}
-               {% endblock %}
-            </div>
-        </div>
-    </section>
+    <div id="side-panel" class="side-panel">
+        <button class="close-btn">&times;</button>
+        <a href="{{ url_for('main.index') }}">Play</a>
+        <a href="{{ url_for('main.profile') }}">Profile</a>
+        <a href="{{ url_for('auth.login') }}">Login</a>
+        <a href="{{ url_for('auth.signup') }}">Sign Up</a>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+    <div id="overlay" class="overlay"></div>
+
+    {% block content %}
+    {% endblock %}
+
+    <script src="{{ url_for('static', filename='js/burgerMenu.js') }}"></script>
 </body>
 
 </html>

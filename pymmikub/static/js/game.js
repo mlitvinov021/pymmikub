@@ -31,13 +31,16 @@ socket.on('game_update', function(data) {
     }).join('');
 
     document.getElementById('end-turn').innerText = data[room].has_player_moved ? 'End Turn' : 'Skip Turn';
+
+    let players = data[room].players
+    let current_player = data[room].current_player
+    updatePlayerList(players, current_player);
 });
 
 
 socket.on('turn_update', function(data) {
     console.log(data);
     document.getElementById('current-player').textContent = data.current_player;
-    document.getElementById('remaining-tiles').textContent = data.remaining_tiles;
     // set button as active for the current player
     if(data.current_player === socket.id) {
         end_turn_button.disabled = false;
@@ -45,20 +48,26 @@ socket.on('turn_update', function(data) {
     else {
         end_turn_button.disabled = true;
     }
-        
+    
+    let players = data[room].players || []
+    let current_player = data[room].current_player || ''
+    updatePlayerList(players, current_player);
 });
 
 
-socket.on('lobby_update', function(data) {
-    console.log(data);
-    var playerList = document.getElementById('players');
+function updatePlayerList(players, current_player) {
+    var playerList = document.getElementById('player-list');
     playerList.innerHTML = '';
-    data.players.forEach(function(player) {
+    players.forEach(function(player) {
         var li = document.createElement('li');
         li.textContent = player;
+        li.classList.add('player');
+        if (player === current_player) {
+            li.classList.add('current');
+        }
         playerList.appendChild(li);
     });
-});
+}
 
 
 function allowDrop(ev) {

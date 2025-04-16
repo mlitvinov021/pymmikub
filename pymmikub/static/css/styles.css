@@ -1,5 +1,14 @@
-body {
+html, body {
     margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden; /* Prevent scrolling */
 }
 
 .bottom-center {
@@ -42,6 +51,7 @@ body {
 
 .tile {
     display: inline-block;
+    min-width: 50px; /* Prevent squishing */
     width: 50px; /* Tile width */
     height: 80px; /* Tile height */
     margin: 2px; /* Space between tiles */
@@ -54,6 +64,7 @@ body {
     font-size: 24px; /* Big font size for the number */
     font-weight: bold; /* Make the number bold */
     color: white; /* Default text color */
+    flex-shrink: 0;
 }
 
 /* Example color styles */
@@ -73,4 +84,158 @@ body {
     height: 80px;
     border: 1px dotted black;
     border-radius: 10px;
+}
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background-color: #333;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.burger-menu {
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.game-title {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.lobby-name {
+    min-width: 100px;
+    text-align: right;
+}
+
+.game-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.upper-section {
+    flex: 1; /* Take all remaining space */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.player-list {
+    display: flex;
+    gap: 10px;
+    margin: 5px 0 10px;
+    flex-wrap: wrap;
+}
+
+.player {
+    padding: 5px 10px;
+    border-radius: 5px;
+    background-color: #ddd;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.player.current {
+    background-color: #ffd700;
+    color: black;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+.combo-section {
+    flex: 1;
+    overflow-y: auto;
+    border: 2px solid #aaa;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+}
+
+.combo-scroll {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.player-hand-section {
+    height: calc(80px + 20px); /* tile height + vertical padding */
+    background-color: #eee;
+    padding: 10px;
+    border-top: 2px solid #ccc;
+    flex-shrink: 0;
+}
+
+.hand-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 5px;
+    align-items: center;
+    height: 100%;
+}
+
+/* Side panel */
+.side-panel {
+    height: 100%;
+    width: 250px;
+    position: fixed;
+    top: 0;
+    left: -250px;
+    background-color: #333;
+    overflow-x: hidden;
+    transition: 0.3s;
+    padding-top: 60px;
+    z-index: 1000;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.side-panel a {
+    padding: 10px 20px;
+    text-decoration: none;
+    color: white;
+    display: block;
+    transition: background 0.2s;
+}
+
+.side-panel a:hover {
+    background-color: #575757;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 30px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+    display: none;
 }

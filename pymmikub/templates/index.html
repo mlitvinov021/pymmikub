@@ -1,29 +1,32 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div id="game-board">
-    <h2>Game Board</h2>
-    <div id="player-list" class="player-list">
-        <h3>Players in Lobby:</h3>
-        <ul id="players"></ul>
+<div class="game-container">
+    <div class="upper-section">
+        <div class="game-info">
+            <div><strong>Current Turn:</strong> <span id="current-player">Waiting...</span></div>
+            <div><strong>Remaining Tiles:</strong> <span id="remaining-tiles">104</span></div>
+            <button id="end-turn" class="btn" disabled="true">End Turn</button>
+        </div>
+        
+        <!-- Add player list display -->
+        <div class="player-list" id="player-list"></div>
+        <div class="combo-section">
+            <div id="combo-grid" class="combo-scroll">
+                <!-- Combos will be added dynamically -->
+            </div>
+        </div>
     </div>
-    <div id="turn-indicator">
-        <strong>Current Turn:</strong> <span id="current-player">Waiting...</span>
-    </div>
-    <div id="tile-count">
-        <strong>Remaining Tiles:</strong> <span id="remaining-tiles">104</span>
-    </div>
-    <div>
-        <button id="end-turn" class="btn" onclick="endTurn()" disabled="true">End Turn</button>
-    </div>
-    <div id="combo-grid">
-        <div id="tiles" class="combination"></div>
+
+    <div class="player-hand-section">
+        <div id="player-hand">
+            <div class="hand-scroll" id="player-tiles" data-combo="0">
+                <!-- Player tiles go here -->
+            </div>
+        </div>
     </div>
 </div>
-<div id="player-hand" class="bottom-center">
-    <h2>Your Hand</h2>
-    <div id="player-tiles" data-combo="0"></div>
-</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-<script src="{{ url_for('static', filename='js/game.js') }}"></script>
+<script src="{{ url_for('static', filename='js/game_es6.js') }}"></script>
 {% endblock %}
