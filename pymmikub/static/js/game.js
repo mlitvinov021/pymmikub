@@ -28,6 +28,10 @@ class GameClient {
             this.updateTurn(data.current_player);
             this.updatePlayerList(data.players, data.current_player);
         });
+
+        this.socket.on("game_won", (data) => {
+            this.showWinScreen(data.winner, data.scores);
+        });        
     }
 
     updateBoard(board) {
@@ -106,6 +110,72 @@ class GameClient {
         span.addEventListener('dragstart', this.drag.bind(this));
         return span;
     }
+
+    showWinScreen(winner, scores) {
+        // Disable end turn button
+        if (this.endTurnButton) {
+            this.endTurnButton.disabled = true;
+        }
+    
+        const overlay = document.createElement('div');
+        overlay.id = "win-overlay";
+        overlay.style.position = "fixed";
+        overlay.style.top = 0;
+        overlay.style.left = 0;
+        overlay.style.width = "100%";
+        overlay.style.height = "100%";
+        overlay.style.backgroundColor = "rgba(0,0,0,0.7)";
+        overlay.style.display = "flex";
+        overlay.style.flexDirection = "column";
+        overlay.style.justifyContent = "center";
+        overlay.style.alignItems = "center";
+        overlay.style.color = "white";
+        overlay.style.zIndex = 2000;
+        overlay.style.fontSize = "24px";
+        overlay.style.padding = "20px";
+    
+        const title = document.createElement("h1");
+        title.textContent = `${winner} wins the game! 🎉`;
+    
+        const list = document.createElement("ul");
+        scores.forEach(([name, score]) => {
+            const item = document.createElement("li");
+            item.textContent = `${name}: ${score} points`;
+            list.appendChild(item);
+        });
+    
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.marginTop = "30px";
+        buttonContainer.style.display = "flex";
+        buttonContainer.style.gap = "20px";
+    
+        const rematchButton = document.createElement("button");
+        rematchButton.textContent = "Rematch";
+        rematchButton.style.padding = "10px 20px";
+        rematchButton.style.fontSize = "18px";
+        rematchButton.onclick = () => {
+            // Placeholder: emit a rematch request
+            this.socket.emit("request_rematch");
+            overlay.remove();
+        };
+    
+        const lobbyButton = document.createElement("button");
+        lobbyButton.textContent = "Return to Lobby";
+        lobbyButton.style.padding = "10px 20px";
+        lobbyButton.style.fontSize = "18px";
+        lobbyButton.onclick = () => {
+            // Placeholder: navigate or emit something
+            window.location.href = "/"; // or emit socket event
+        };
+    
+        buttonContainer.appendChild(rematchButton);
+        buttonContainer.appendChild(lobbyButton);
+    
+        overlay.appendChild(title);
+        overlay.appendChild(list);
+        overlay.appendChild(buttonContainer);
+        document.body.appendChild(overlay);
+    }    
     
     createPlacer(comboIndex, position) {
         const span = document.createElement('span');

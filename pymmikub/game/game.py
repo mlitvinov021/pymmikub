@@ -270,22 +270,23 @@ class Game:
             for tile in player.hand.tiles:
                 tile.is_new = False
         
-        # TODO: remove the ability to end turns.
-
         # Count player scores by adding up numbers on tiles.
         scores: dict[str, int] = {}
         for player in self.players.values():
             score: int = 0
             for tile in player.hand.tiles:
-                if tile.color != Color.JOKER:
-                    score += tile.number
-                else:
-                    score += 30
-            scores.update([player.name, score])
-        # Sort the scores.
-        scores = dict(sorted(scores.items(), key = lambda x:x[1]))
-        # Show table with scores.
-        print(scores)
+                score += 30 if tile.color == Color.JOKER else tile.number
+            scores[player.name] = score
+
+        # Sort scores: lowest wins
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1])
+        winner_name = sorted_scores[0][0]
+
+        # Emit win screen info to all players in room
+        emit("game_won", {
+            "winner": winner_name,
+            "scores": sorted_scores
+        }, to=self.room)
         
 
 class GameEncoder():
