@@ -4,13 +4,12 @@
 <div class="game-container">
     <div class="upper-section">
         <div class="game-info">
-            <div><strong>Current Turn:</strong> <span id="current-player">Waiting...</span></div>
-            <div><strong>Remaining Tiles:</strong> <span id="remaining-tiles">104</span></div>
             <button id="end-turn" class="btn" disabled="true">End Turn</button>
+            <div><strong>Players:</strong><div class="player-list" id="player-list"></div></div>
+            <div><strong>Remaining Tiles:</strong> <span id="remaining-tiles">104</span></div>
+            
         </div>
         
-        <!-- Add player list display -->
-        <div class="player-list" id="player-list"></div>
         <div class="combo-section">
             <div id="combo-grid" class="combo-scroll">
                 <!-- Combos will be added dynamically -->
@@ -28,5 +27,5 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-<script src="{{ url_for('static', filename='js/game_es6.js') }}"></script>
+<script src="{{ url_for('static', filename='js/game.js') }}"></script>
 {% endblock %}

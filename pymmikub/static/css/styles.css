@@ -1,3 +1,4 @@
+/* ========== GLOBAL RESET & BASE ========== */
 html, body {
     margin: 0;
     padding: 0;
@@ -8,84 +9,11 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    overflow: hidden; /* Prevent scrolling */
+    overflow: hidden;
+    font-family: Arial, sans-serif;
 }
 
-.bottom-center {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #f0f0f0;
-    padding: 10px 20px;
-    border-radius: 5px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-#game-board {
-    border: 4px solid black;
-    border-radius: 5px;
-}
-
-#combo-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Create 2 columns */
-    gap: 10px; /* Add spacing between cells */
-    background-color: #ffffff;
-    padding: 20px;
-    border: 2px solid #333;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.combination {
-    background-color: #d0d0d0;
-    padding: 20px;
-    text-align: center;
-    border: 1px solid #aaa;
-    border-color: black;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: bold;
-}
-
-.tile {
-    display: inline-block;
-    min-width: 50px; /* Prevent squishing */
-    width: 50px; /* Tile width */
-    height: 80px; /* Tile height */
-    margin: 2px; /* Space between tiles */
-    background-color: #aaa; /* Base background color */
-    border: 2px solid black; /* Black border for clarity */
-    border-radius: 10px; /* Rounded corners */
-    text-align: center; /* Center the text horizontally */
-    position: relative; /* Enable precise positioning for content */
-    font-family: Arial, sans-serif; /* Clear and readable font */
-    font-size: 24px; /* Big font size for the number */
-    font-weight: bold; /* Make the number bold */
-    color: white; /* Default text color */
-    flex-shrink: 0;
-}
-
-/* Example color styles */
-.RED { color: red; }
-.BLUE { color: blue; }
-.YELLOW { color: yellow; }
-.BLACK { color: black; }
-
-.new {border-color: green;}
-
-.invalid {border-color: red;}
-
-.placer {
-    display: inline-block;
-    position: relative; /* Enable precise positioning for content */
-    width: 5px;
-    height: 80px;
-    border: 1px dotted black;
-    border-radius: 10px;
-}
-
+/* ========== LAYOUT CONTAINERS ========== */
 .top-bar {
     display: flex;
     align-items: center;
@@ -103,6 +31,7 @@ body {
     border: none;
     color: white;
     cursor: pointer;
+    margin-left: 0;
 }
 
 .game-title {
@@ -123,41 +52,68 @@ body {
 }
 
 .upper-section {
-    flex: 1; /* Take all remaining space */
+    flex: 1;
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
+.bottom-center {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #f0f0f0;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== GAME INFO & PLAYER LIST ========== */
 .game-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    gap: 20px;
     flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.game-info > div,
+.game-info > button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .player-list {
     display: flex;
-    gap: 10px;
-    margin: 5px 0 10px;
+    gap: 6px;
     flex-wrap: wrap;
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.player {
-    padding: 5px 10px;
-    border-radius: 5px;
+.player-list .player {
     background-color: #ddd;
-    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 5px;
     font-size: 14px;
+    font-weight: bold;
 }
 
-.player.current {
+.player-list .player.current {
     background-color: #ffd700;
     color: black;
-    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
+/* ========== COMBO SECTION ========== */
 .combo-section {
     flex: 1;
     overflow-y: auto;
@@ -167,14 +123,100 @@ body {
     background-color: #f9f9f9;
 }
 
-.combo-scroll {
+#combo-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 10px;
+    padding: 10px;
+    overflow-y: auto;
+    background-color: #ffffff;
+    border: 2px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    max-height: 100%;
 }
 
+@media (min-width: 700px) and (orientation: landscape) {
+    #combo-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.combination {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border: 1px solid #aaa;
+    border-radius: 5px;
+    overflow-x: auto;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
+    scroll-padding-left: 10px;
+}
+
+.combination:has(.placer):only-child .placer,
+.combination > .placer:only-child {
+    flex: 1 1 auto;
+    min-width: 100%;
+    justify-content: center;
+}
+
+/* ========== TILES & PLACERS ========== */
+.tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    width: 50px;
+    height: 80px;
+    margin: 2px;
+    background-color: #aaa;
+    border: 2px solid black;
+    border-radius: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+    padding-top: 6px;
+    box-sizing: border-box;
+}
+
+.tile-number {
+    line-height: 1;
+}
+
+.RED { color: red; }
+.BLUE { color: blue; }
+.YELLOW { color: yellow; }
+.BLACK { color: black; }
+
+.new { border-color: green; }
+.invalid { border-color: red; }
+
+.placer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    width: 30px;
+    border: 1px dashed #888;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.05);
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.placer.dragover {
+    background-color: rgba(0, 128, 0, 0.1);
+    border-color: green;
+}
+
+/* ========== PLAYER HAND ========== */
 .player-hand-section {
-    height: calc(80px + 20px); /* tile height + vertical padding */
+    height: calc(80px + 20px);
     background-color: #eee;
     padding: 10px;
     border-top: 2px solid #ccc;
@@ -189,7 +231,7 @@ body {
     height: 100%;
 }
 
-/* Side panel */
+/* ========== SIDE PANEL ========== */
 .side-panel {
     height: 100%;
     width: 250px;
@@ -221,7 +263,7 @@ body {
 .close-btn {
     position: absolute;
     top: 10px;
-    right: 20px;
+    left: 20px;
     font-size: 30px;
     background: none;
     border: none;
