@@ -5,3 +5,4 @@ class Color(Enum):
     YELLOW = "YELLOW"
     BLUE = "BLUE"
     RED = "RED"
+    JOKER = "JOKER"

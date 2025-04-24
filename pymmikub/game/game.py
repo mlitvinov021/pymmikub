@@ -6,7 +6,6 @@ import random
 import uuid
 
 
-@dataclass
 class Tile:
     id: str
     number: int
@@ -14,7 +13,7 @@ class Tile:
     is_new: bool
 
 
-    def __init__(self, number: int, color: Color, is_new: bool, id: str = None) -> None:
+    def __init__(self, number: int, color: Color, is_new: bool = True, id: str = None) -> None:
         if id is None:
             self.id = str(uuid.uuid4())
         else:
@@ -49,29 +48,41 @@ class Combination:
         self.tiles.insert(position, tile)
 
 
+    def check_valid_group(self) -> bool:
+            values: set[int] = set(tile.number for tile in self.tiles if not tile.color == Color.JOKER)
+            colors: set[Color] = set(tile.color for tile in self.tiles if not tile.color == Color.JOKER)
+            joker_count: int = sum(1 for tile in self.tiles if tile.color == Color.JOKER)
+
+            if len(values) > 1:
+                return False
+            
+            if len(colors) != len(self.tiles) - joker_count:
+                return False
+            
+            return True
+
+
+    def check_valid_run(self):
+            colors: set[Color] = set(tile.color for tile in self.tiles if not tile.color == Color.JOKER)
+            sorted_values: list[int] = sorted([tile.number for tile in self.tiles if not tile.color == Color.JOKER])
+
+            if len(colors) > 1:
+                return False
+            
+            missing_values = set(range(sorted_values[0], sorted_values[-1] + 1)) - set(sorted_values)
+            joker_count: int = sum(1 for tile in self.tiles if tile.color == Color.JOKER)
+
+            return len(missing_values) <= joker_count
+
+
     def check_validity(self) -> bool:
         if len(self.tiles) == 0:
             return True
         
         if len(self.tiles) < 3:
             return False
-
-        numbers: List[int] = [tile.number for tile in self.tiles]
-        numbers = sorted(numbers)
-        colors: List[Color] = [tile.color for tile in self.tiles]
-        unique_numbers: int = len(set(numbers))
-        unique_colors: int = len(set(colors))
-
-        # series of unique numbers of one color
-        if unique_numbers == len(numbers) and \
-            numbers == list(range(numbers[0], numbers[-1]+1)) and \
-            unique_colors == 1:
-            return True
-        # one number in several unique colors
-        elif unique_numbers == 1 and unique_colors == len(self.tiles):
-            return True
         
-        return False
+        return self.check_valid_group() or self.check_valid_run()
     
     
     def to_dict(self) -> List[dict]:
@@ -145,12 +156,13 @@ class Game:
     
 
     def initialize_tiles(self) -> None:
-        # i in range (2, 28) and floor division by 2 gives us two tiles of each number
-        for color in Color:
-            for i in range(2, 28):
-                self.tiles.extend([Tile(i // 2, color, True)])
+        # For first 4 colors, add 26 tiles, 2 of each number.
+        for color in list(Color)[:4]:
+            for i in range(1, 14):
+                self.tiles.extend([Tile(i, color), Tile(i, color)])
         
-        # TODO: add jokers
+        # After that, add 2 jokers and shuffle the deck.
+        self.tiles.extend([Tile(0, Color.JOKER), Tile(0, Color.JOKER)])
         random.shuffle(self.tiles)
 
 
@@ -199,10 +211,6 @@ class Game:
         player.hand = Combination()
         player.hand.tiles = self.draw_tile(14)
         
-        #if self.current_player == "":
-        #    self.current_player = sid
-        #    self.tile_count = 14
-        
         if len(self.players) == 1:  # If first player joins, start game
             self.current_player_index = 0
             self.tile_count = 14
@@ -250,6 +258,34 @@ class Game:
                 tile.is_new = False
         
         #emit('turn_update', {"players" : [*self.players], "current_player" : self.get_current_player().name}, to=self.room)
+    
+    
+    def end_game(self):
+        # Make all of the tiles old so they cant be placed or moved.
+        for combo in self.board.combos:
+            for tile in combo.tiles:
+                tile.is_new = False
+        
+        for player in self.players.values():
+            for tile in player.hand.tiles:
+                tile.is_new = False
+        
+        # TODO: remove the ability to end turns.
+
+        # Count player scores by adding up numbers on tiles.
+        scores: dict[str, int] = {}
+        for player in self.players.values():
+            score: int = 0
+            for tile in player.hand.tiles:
+                if tile.color != Color.JOKER:
+                    score += tile.number
+                else:
+                    score += 30
+            scores.update([player.name, score])
+        # Sort the scores.
+        scores = dict(sorted(scores.items(), key = lambda x:x[1]))
+        # Show table with scores.
+        print(scores)
         
 
 class GameEncoder():
