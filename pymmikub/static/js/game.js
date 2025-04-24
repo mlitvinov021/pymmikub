@@ -1,142 +1,183 @@
-const socket = io.connect('http://' + document.domain + ':' + location.port);
-const room = 'default'
+class GameClient {
+    constructor(room = 'default') {
+        this.room = room;
+        this.socket = io.connect(`http://${document.domain}:${location.port}`);
+        this.endTurnButton = document.getElementById('end-turn');
+        this.boardEl = document.getElementById('combo-grid');
+        this.handEl = document.getElementById('player-tiles');
+        this.currentPlayerEl = document.getElementById('current-player');
+        this.remainingTilesEl = document.getElementById('remaining-tiles');
+        this.playerListEl = document.getElementById('player-list');
 
-// Join the game
-socket.emit('join_game', { room: room });
+        this.registerSocketEvents();
+        this.socket.emit('join_game', { room: this.room });
+    }
 
-let end_turn_button = document.getElementById('end-turn');
+    registerSocketEvents() {
+        this.socket.on('game_update', (data) => {
+            console.log(data)
+            const roomData = data[this.room];
+            this.updateBoard(roomData.board);
+            this.updateHand(roomData.hand.tiles);
+            this.updatePlayerList(roomData.players, roomData.current_player);
+            this.updateTiles(roomData.tiles)
+            this.updateTurn(roomData.current_player, roomData.has_player_moved);
+        });
 
-socket.on('game_update', function(data) {
-    // Update game board
-    console.log(data);
-    document.getElementById('combo-grid').innerHTML = data[room].board.map((comboInfo, comboIndex) => {
-        const tiles = data[room].board[comboIndex].tiles.map((tileInfo, tileIndex) => {
-            const newTile = tile(tileInfo);
-            const newPlacer = placer(comboIndex + 1, tileIndex + 1);
-            return newTile + newPlacer;
-        }).join('');
-        
-        if (tiles.length === 0) {
-            return comb(comboIndex + 1, comboInfo.is_valid, placer(comboIndex + 1, 0));
+        this.socket.on('turn_update', (data) => {
+            this.updateTurn(data.current_player);
+            this.updatePlayerList(data.players, data.current_player);
+        });
+    }
+
+    updateBoard(board) {
+        this.boardEl.innerHTML = '';
+        board.forEach((comboInfo, comboIndex) => {
+            const combo = document.createElement('div');
+            combo.className = `combination ${comboInfo.is_valid ? 'valid' : 'invalid'}`;
+            combo.dataset.combo = comboIndex + 1;
+    
+            combo.appendChild(this.createPlacer(comboIndex + 1, 0));
+    
+            comboInfo.tiles.forEach((tileInfo, tileIndex) => {
+                combo.appendChild(this.createTile(tileInfo));
+                combo.appendChild(this.createPlacer(comboIndex + 1, tileIndex + 1));
+            });
+
+            if (combo.children.length === 1 && combo.firstChild.classList.contains('placer')) {
+                combo.firstChild.style.flex = '1 1 auto';
+                combo.firstChild.style.minWidth = '100%';
+            }
+    
+            this.boardEl.appendChild(combo);
+        });
+    }
+    
+    updateHand(tiles) {
+        this.handEl.innerHTML = '';
+        this.handEl.appendChild(this.createPlacer(0, 0));
+    
+        tiles.forEach((tileInfo, tileIndex) => {
+            this.handEl.appendChild(this.createTile(tileInfo));
+            this.handEl.appendChild(this.createPlacer(0, tileIndex + 1));
+        });
+    }
+
+    updateTiles(remainingTiles) {
+        if (this.remainingTilesEl && remainingTiles !== null) {
+            this.remainingTilesEl.textContent = remainingTiles;
+        }
+    }
+    
+    updateTurn(currentPlayer, hasMoved = false) {
+        if (this.currentPlayerEl) {
+            this.currentPlayerEl.textContent = currentPlayer;
         }
 
-        return comb(comboIndex + 1, comboInfo.is_valid, placer(comboIndex + 1, 0) + tiles);
-    }).join('');
-
-    // Update player hand
-    document.getElementById('player-tiles').innerHTML = placer(0, 0) + data[room].hand.tiles.map((tileInfo, tileIndex) => {
-        const newTile = tile(tileInfo);
-        const newPlacer = placer(0, tileIndex + 1);
-        return newTile + newPlacer;
-    }).join('');
-
-    document.getElementById('end-turn').innerText = data[room].has_player_moved ? 'End Turn' : 'Skip Turn';
-});
-
-
-socket.on('turn_update', function(data) {
-    console.log(data);
-    document.getElementById('current-player').textContent = data.current_player;
-    document.getElementById('remaining-tiles').textContent = data.remaining_tiles;
-    // set button as active for the current player
-    if(data.current_player === socket.id) {
-        end_turn_button.disabled = false;
+        if (this.endTurnButton) {
+            this.endTurnButton.disabled = currentPlayer !== this.socket.id;
+            this.endTurnButton.textContent = hasMoved ? 'End Turn' : 'Skip Turn';
+        }
     }
-    else {
-        end_turn_button.disabled = true;
+
+    updatePlayerList(players, currentPlayer) {
+        this.playerListEl.innerHTML = '';
+        players.forEach(player => {
+            const li = document.createElement('li');
+            li.textContent = player;
+            li.classList.add('player');
+            if (player === currentPlayer) {
+                li.classList.add('current');
+            }
+            this.playerListEl.appendChild(li);
+        });
     }
-        
-});
 
+    createTile(tileInfo) {
+        const span = document.createElement('span');
+        span.id = tileInfo.id;
+        span.className = `tile ${tileInfo.color} ${tileInfo.is_new ? 'new' : ''}`;
+        span.setAttribute('draggable', 'true');
+        span.dataset.tileNumber = tileInfo.number;
+        span.dataset.tileColor = tileInfo.color;
+        span.dataset.tileIsnew = tileInfo.is_new;
+        span.textContent = tileInfo.number;
+    
+        span.addEventListener('dragstart', this.drag.bind(this));
+        return span;
+    }
+    
+    createPlacer(comboIndex, position) {
+        const span = document.createElement('span');
+        span.className = 'placer';
+        span.dataset.combo = comboIndex;
+        span.dataset.position = position;
+        span.innerHTML = '&nbsp;';
+    
+        span.addEventListener('drop', this.drop.bind(this));
+        span.addEventListener('dragover', this.allowDrop.bind(this));
+        span.addEventListener('dragleave', this.leave.bind(this));
+    
+        return span;
+    }
+    
+    comb(comboIndex, isValid, content) {
+        const div = document.createElement('div');
+        div.className = `combination ${isValid ? 'valid' : 'invalid'}`;
+        div.dataset.combo = comboIndex;
+        div.innerHTML = content;
+        return div.outerHTML;
+    }
 
-socket.on('lobby_update', function(data) {
-    console.log(data);
-    var playerList = document.getElementById('players');
-    playerList.innerHTML = '';
-    data.players.forEach(function(player) {
-        var li = document.createElement('li');
-        li.textContent = player;
-        playerList.appendChild(li);
+    endTurn() {
+        this.socket.emit('end_turn', { room: this.room });
+    }
+
+    allowDrop(ev) {
+        ev.preventDefault();
+        ev.target.classList.add('dragover');
+    }
+
+    drag(ev) {
+        ev.dataTransfer.setData("id", ev.target.id);
+        ev.dataTransfer.setData("origin", ev.target.parentElement.dataset.combo);
+    }
+
+    leave(ev) {
+        ev.target.classList.remove('dragover');
+    }
+
+    drop(ev) {
+        ev.preventDefault();
+        ev.target.classList.remove('dragover');
+        const tileId = ev.dataTransfer.getData("id");
+        const origin = parseInt(ev.dataTransfer.getData("origin"));
+        const target = parseInt(ev.target.dataset.combo);
+        const position = parseInt(ev.target.dataset.position);
+
+        const tileElement = document.getElementById(tileId);
+        const tileData = {
+            id: tileId,
+            number: parseInt(tileElement.dataset.tileNumber),
+            color: tileElement.dataset.tileColor,
+            is_new: tileElement.dataset.tileIsnew
+        };
+
+        this.socket.emit('place_tile', {
+            room: this.room,
+            tile: tileData,
+            origin: origin,
+            target: target,
+            position: position
+        });
+    }
+}
+
+// Initialize the game client once DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.game = new GameClient();
+
+    document.getElementById('end-turn').addEventListener('click', () => {
+        game.endTurn();
     });
 });
-
-
-function allowDrop(ev) {
-    ev.preventDefault();
-    ev.target.style.width = '50px';
-}
-
-
-function drag(ev) {
-    ev.dataTransfer.setData("id", ev.target.id);
-    ev.dataTransfer.setData("origin", ev.target.parentElement.dataset.combo);
-}
-
-
-function leave(ev) {
-    ev.target.style.width = "5px";
-}
-
-
-function drop(ev) {
-    ev.preventDefault();
-
-    const tileId = ev.dataTransfer.getData("id");
-    const origin = parseInt(ev.dataTransfer.getData("origin"));
-    const target = parseInt(ev.target.dataset.combo);
-    const position = parseInt(ev.target.dataset.position);
-
-    ev.target.style.width = "5px";
-
-    placeTile(tileId, origin, target, position);
-}
-
-
-function placeTile(tileId, origin, target, position) {
-    const tileNumber = document.getElementById(tileId).dataset.tileNumber;
-    const tileColor = document.getElementById(tileId).dataset.tileColor;
-    const tileIsNew = document.getElementById(tileId).dataset.tileIsnew;
-
-    socket.emit('place_tile', { room: room, tile: {id: tileId, number: parseInt(tileNumber), color: tileColor, is_new: tileIsNew}, origin: origin, target: target, position: position });
-}
-
-
-function tile(tileInfo) {
-    var tile = document.createElement('span');
-    tile.setAttribute('id', tileInfo.id);
-    tile.setAttribute('draggable', 'true');
-    tile.setAttribute('ondragstart', 'drag(event)');
-    tile.setAttribute('class', 'tile ' + tileInfo.color + ' ' + (tileInfo.is_new ? 'new' : ''));
-    tile.setAttribute('data-tile-number', tileInfo.number);
-    tile.setAttribute('data-tile-color', tileInfo.color);
-    tile.setAttribute('data-tile-isnew', tileInfo.is_new);
-    tile.appendChild(document.createTextNode(tileInfo.number));
-    return tile.outerHTML;
-}
-
-
-function placer(comboIndex, position) {
-    var placer = document.createElement('span');
-    placer.setAttribute('ondrop', 'drop(event)');
-    placer.setAttribute('ondragover', 'allowDrop(event)');
-    placer.setAttribute('ondragleave', 'leave(event)');
-    placer.setAttribute('class', 'placer');
-    placer.setAttribute('data-combo', comboIndex);
-    placer.setAttribute('data-position', position);
-    placer.appendChild(document.createTextNode(`\u00a0`));
-    return placer.outerHTML;
-}
-
-
-function comb(comboIndex, comboValid, content) {
-    var combo = document.createElement('div');
-    combo.setAttribute('class', 'combination ' + (comboValid ? 'valid' : 'invalid'));
-    combo.setAttribute('data-combo', comboIndex);
-    combo.innerHTML = content;
-    return combo.outerHTML;
-}
-
-
-function endTurn() {
-    socket.emit('end_turn', { room: room });
-}

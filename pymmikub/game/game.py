@@ -207,8 +207,7 @@ class Game:
             self.current_player_index = 0
             self.tile_count = 14
 
-        emit('lobby_update', {"players" : [*self.players]}, to=self.room)
-        emit('turn_update', {"current_player" : self.get_current_player().name, "remaining_tiles" : len(self.tiles)}, to=self.room)
+        emit('turn_update', {"players" : [*self.players], "current_player" : self.get_current_player().name}, to=self.room)
     
     
     def disconnect_player(self, sid: str) -> None:
@@ -250,7 +249,7 @@ class Game:
             for tile in combo.tiles:
                 tile.is_new = False
         
-        emit('turn_update', {"current_player" : self.get_current_player().name, "remaining_tiles" : len(self.tiles)}, to=self.room)
+        #emit('turn_update', {"players" : [*self.players], "current_player" : self.get_current_player().name}, to=self.room)
         
 
 class GameEncoder():
@@ -262,6 +261,7 @@ class GameEncoder():
                 "board": [combo.to_dict() for combo in o.board.combos],
                 "hand" : o.players.get(sid).hand.to_dict(),
                 "players": [player for player in o.players],
+                "current_player": o.get_current_player().name,
                 "has_player_moved": o.has_current_player_moved(),
                 }
             gameinfo = {o.room : roominfo}
