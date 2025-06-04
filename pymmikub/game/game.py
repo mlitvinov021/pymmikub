@@ -13,8 +13,8 @@ class Tile:
     is_new: bool
 
 
-    def __init__(self, number: int, color: Color, is_new: bool = True, id: str = None) -> None:
-        if id is None:
+    def __init__(self, number: int, color: Color, is_new: bool = True, id: str = "") -> None:
+        if len(id) == 0:
             self.id = str(uuid.uuid4())
         else:
             self.id = id
@@ -85,7 +85,7 @@ class Combination:
         return self.check_valid_group() or self.check_valid_run()
     
     
-    def to_dict(self) -> List[dict]:
+    def to_dict(self) -> dict:
         data: dict = {}
         data.update({"is_valid" : self.check_validity()})
         data.update({"tiles" : [tile.to_dict() for tile in self.tiles]})
@@ -95,6 +95,8 @@ class Combination:
     def __eq__(self, value) -> bool:
         if isinstance(value, Combination):
             return self.tiles == value.tiles
+        else:
+            return False
 
 
 class Player:
@@ -220,8 +222,8 @@ class Game:
     
     def disconnect_player(self, sid: str) -> None:
         if sid in self.players:
-            idx = self.players.index(sid)
-            self.players.remove(sid)
+            idx = list(self.players).index(sid)
+            self.players.pop(sid)
 
             # Adjust turn index to ensure it remains valid
             if idx < self.current_player_index:
@@ -290,18 +292,20 @@ class Game:
         
 
 class GameEncoder():
-    def encode(o, sid) -> dict:
-        if isinstance(o, Game):
+    @staticmethod
+    def encode(game, sid) -> dict: # type: ignore
+        if isinstance(game, Game):
+            player = game.players.get(sid)
             roominfo = {
                 #"tiles": [(tile[0], str(tile[1])) for tile in o.tiles],
-                "tiles": len(o.tiles),
-                "board": [combo.to_dict() for combo in o.board.combos],
-                "hand" : o.players.get(sid).hand.to_dict(),
-                "players": [player for player in o.players],
-                "current_player": o.get_current_player().name,
-                "has_player_moved": o.has_current_player_moved(),
+                "tiles": len(game.tiles),
+                "board": [combo.to_dict() for combo in game.board.combos],
+                "hand": player.hand.to_dict() if player else None,
+                "players": [player for player in game.players],
+                "current_player": game.get_current_player().name,
+                "has_player_moved": game.has_current_player_moved(),
                 }
-            gameinfo = {o.room : roominfo}
+            gameinfo = {game.room : roominfo}
             return gameinfo
         else:
-            return ""
+            return dict()

@@ -47,15 +47,19 @@ def create_app(test_config=None):
         room_name: str = data['room']
 
         # TODO: of course set the actual player name
-        playernames[request.sid] = request.sid
+        playernames[request.sid] = request.sid # type: ignore
 
         join_room(room_name)
 
         if room_name not in games:
-            game: Game = Game(room_name)
-            games.update({room_name: game})
+            new_game: Game = Game(room_name)
+            games.update({room_name: new_game})
 
-        games.get(room_name).connect_player(request.sid, playernames.get(request.sid))
+        game : Game | None = games.get(room_name)
+        if game:
+            game.connect_player(request.sid, playernames.get(request.sid)) # type: ignore
+        else:
+            print(f"Game room '{room_name}' not found.")
 
         update_room(room_name)
 
@@ -64,7 +68,7 @@ def create_app(test_config=None):
     def handle_place_tile(data):
         room_name: str = data['room']
         game: Game = games[room_name]
-        player: Player = game.players[request.sid]
+        player: Player = game.players[request.sid] # type: ignore
         is_new = (lambda x: True if isinstance(x, str) and x.lower() == "true" else False)(data['tile']['is_new'])
         tile: Tile = Tile(data['tile']['number'], Color(data['tile']['color']), is_new, data['tile']['id'])
         origin: Combination = game.board.combos[int(data['origin']) - 1]
@@ -85,14 +89,16 @@ def create_app(test_config=None):
     def handle_end_turn(data):
         room_name: str = data['room']
         game: Game = games[room_name]
-        player: Player = game.players[request.sid]
+        player: Player = game.players[request.sid] # type: ignore
         game.end_turn(player)
 
         update_room(room_name)
 
 
-    def update_room(room_name: str) -> None:
-        game: Game = games.get(room_name)
+    def update_room(room_name: str) -> None: 
+        game: Game | None = games.get(room_name)
+        if game is None:
+            return
 
         for player in game.players:
             data = GameEncoder.encode(game, player)
