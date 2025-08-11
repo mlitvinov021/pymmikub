@@ -1,6 +1,5 @@
 from typing import List
 from .color import Color
-from dataclasses import dataclass
 from flask_socketio import emit
 import random
 import uuid
@@ -128,7 +127,7 @@ class Board:
 
     def check_valid_board(self) -> bool:
         for combo in self.combos:
-            if combo.check_validity() == False:
+            if not combo.check_validity():
                 return False
         return True
     
@@ -195,7 +194,7 @@ class Game:
             target.insert_tile(tile, position)
             player.hand.tiles.remove(tile)
         # else if target is hand
-        elif not (tile in player.hand.tiles) and target == player.hand and tile.is_new:
+        elif tile not in player.hand.tiles and target == player.hand and tile.is_new:
             player.hand.insert_tile(tile, position)
             origin.tiles.remove(tile)
         # else if target is board

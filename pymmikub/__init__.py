@@ -1,12 +1,10 @@
 import os
 
 from flask import Flask, request
-from flask_socketio import SocketIO, emit, join_room, leave_room
-import random
+from flask_socketio import SocketIO, emit, join_room
 from pymmikub.game.color import Color
 from pymmikub.game.game import Combination, Game, GameEncoder, Player, Tile
 from . import db
-import json
 
 # blueprint imports
 from .auth import auth as auth_blueprint
