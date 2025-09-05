@@ -1,4 +1,5 @@
 from typing import List
+import threading
 from .color import Color
 from flask_socketio import emit
 import random
@@ -101,13 +102,13 @@ class Combination:
 class Player:
     hand: Combination = Combination()
     name: str
-    sid: str
+    player_id: str
 
     has_entered: bool = False
 
 
-    def __init__(self, sid: str, name: str) -> None:
-        self.sid = sid
+    def __init__(self, player_id: str, name: str) -> None:
+        self.player_id = player_id
         self.name = name
 
 
@@ -142,7 +143,14 @@ class Game:
     
     tiles: List[Tile] = []
     board: Board = Board()
+    # Players keyed by stable player_id
     players: dict[str, Player] = {}
+    # Active Socket.IO SIDs per player_id
+    _connections: dict[str, set[str]] = {}
+    # Reverse map: sid -> player_id
+    _sid_to_pid: dict[str, str] = {}
+    # Pending disconnect timers per player_id
+    _disconnect_timers: dict[str, threading.Timer] = {}
     current_player_index: int = 0
     tile_count: int = 0
 
@@ -205,32 +213,73 @@ class Game:
         self.board.refresh_board()
 
 
-    def connect_player(self, sid: str, name: str) -> None:
-        player: Player = Player(sid, name)
-        self.players.update({sid: player})
-        
-        player.hand = Combination()
-        player.hand.tiles = self.draw_tile(14)
-        
-        if len(self.players) == 1:  # If first player joins, start game
-            self.current_player_index = 0
-            self.tile_count = 14
+    def connect_player(self, player_id: str, sid: str, name: str | None = None) -> None:
+        # If there was a pending disconnect for this player, cancel it
+        pending = self._disconnect_timers.pop(player_id, None)
+        if pending:
+            try:
+                pending.cancel()
+            except Exception:
+                pass
+        # Create new player if first time seen in this game
+        if player_id not in self.players:
+            display_name = name if name else player_id
+            player: Player = Player(player_id, display_name)
+            self.players[player_id] = player
+            player.hand = Combination()
+            player.hand.tiles = self.draw_tile(14)
 
-        emit('turn_update', {"players" : [*self.players], "current_player" : self.get_current_player().name}, to=self.room)
+            if len(self.players) == 1:  # If first player joins, start game
+                self.current_player_index = 0
+                self.tile_count = 14
+
+        else:
+            # Update name if provided and changed
+            if name and self.players[player_id].name != name:
+                self.players[player_id].name = name
+
+        # Track connection
+        self._connections.setdefault(player_id, set()).add(sid)
+        self._sid_to_pid[sid] = player_id
+
+        # Broadcast turn info to room
+        emit('turn_update', {
+            "players": [{"id": pid, "name": p.name} for pid, p in self.players.items()],
+            "current_player_id": self.get_current_player().player_id,
+            "current_player_name": self.get_current_player().name
+        }, to=self.room)
     
     
-    def disconnect_player(self, sid: str) -> None:
-        if sid in self.players:
-            idx = list(self.players).index(sid)
-            self.players.pop(sid)
-
-            # Adjust turn index to ensure it remains valid
-            if idx < self.current_player_index:
-                self.current_player_index -= 1
-            elif self.current_player_index >= len(self.players):
-                self.current_player_index = 0  # Reset to first player
-        
-        #TODO: actual disconnect
+    def disconnect_sid(self, sid: str) -> None:
+        pid = self._sid_to_pid.pop(sid, None)
+        if pid is None:
+            return
+        conns = self._connections.get(pid)
+        if conns is not None and sid in conns:
+            conns.discard(sid)
+            if not conns:
+                # Schedule delayed removal to allow quick refresh reconnects
+                def _remove():
+                    # If player reconnected in the meantime, do nothing
+                    active = self._connections.get(pid)
+                    if active:
+                        return
+                    # Proceed with removal
+                    self._disconnect_timers.pop(pid, None)
+                    if pid in self.players:
+                        keys = list(self.players.keys())
+                        idx = keys.index(pid)
+                        self.players.pop(pid)
+                        if not self.players:
+                            self.current_player_index = 0
+                        else:
+                            if idx < self.current_player_index:
+                                self.current_player_index -= 1
+                            elif self.current_player_index >= len(self.players):
+                                self.current_player_index = 0
+                timer = threading.Timer(3.0, _remove)
+                self._disconnect_timers[pid] = timer
+                timer.start()
 
 
     def end_turn(self, player: Player) -> None:
@@ -258,7 +307,7 @@ class Game:
             for tile in combo.tiles:
                 tile.is_new = False
         
-        #emit('turn_update', {"players" : [*self.players], "current_player" : self.get_current_player().name}, to=self.room)
+        # Turn update can be emitted by caller after applying state changes
     
     
     def end_game(self):
@@ -292,16 +341,17 @@ class Game:
 
 class GameEncoder():
     @staticmethod
-    def encode(game, sid) -> dict: # type: ignore
+    def encode(game, player_id) -> dict: # type: ignore
         if isinstance(game, Game):
-            player = game.players.get(sid)
+            player = game.players.get(player_id)
             roominfo = {
                 #"tiles": [(tile[0], str(tile[1])) for tile in o.tiles],
                 "tiles": len(game.tiles),
                 "board": [combo.to_dict() for combo in game.board.combos],
                 "hand": player.hand.to_dict() if player else None,
-                "players": [player for player in game.players],
-                "current_player": game.get_current_player().name,
+                "players": [{"id": pid, "name": p.name} for pid, p in game.players.items()],
+                "current_player_id": game.get_current_player().player_id,
+                "current_player_name": game.get_current_player().name,
                 "has_player_moved": game.has_current_player_moved(),
                 }
             gameinfo = {game.room : roominfo}

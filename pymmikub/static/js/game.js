@@ -2,6 +2,8 @@ class GameClient {
     constructor(room = 'default') {
         this.room = room;
         this.socket = io.connect(`http://${document.domain}:${location.port}`);
+        this.playerId = this.getCookie('player_id');
+        this.nickname = this.getCookie('nickname') || this.askNickname();
         this.endTurnButton = document.getElementById('end-turn');
         this.boardEl = document.getElementById('combo-grid');
         this.handEl = document.getElementById('player-tiles');
@@ -10,7 +12,7 @@ class GameClient {
         this.playerListEl = document.getElementById('player-list');
 
         this.registerSocketEvents();
-        this.socket.emit('join_game', { room: this.room });
+        this.socket.emit('join_game', { room: this.room, nickname: this.nickname });
     }
 
     registerSocketEvents() {
@@ -19,14 +21,14 @@ class GameClient {
             const roomData = data[this.room];
             this.updateBoard(roomData.board);
             this.updateHand(roomData.hand.tiles);
-            this.updatePlayerList(roomData.players, roomData.current_player);
+            this.updatePlayerList(roomData.players, roomData.current_player_id);
             this.updateTiles(roomData.tiles)
-            this.updateTurn(roomData.current_player, roomData.has_player_moved);
+            this.updateTurn(roomData.current_player_id, roomData.current_player_name, roomData.has_player_moved);
         });
 
         this.socket.on('turn_update', (data) => {
-            this.updateTurn(data.current_player);
-            this.updatePlayerList(data.players, data.current_player);
+            this.updateTurn(data.current_player_id, data.current_player_name);
+            this.updatePlayerList(data.players, data.current_player_id);
         });
 
         this.socket.on("game_won", (data) => {
@@ -73,24 +75,25 @@ class GameClient {
         }
     }
     
-    updateTurn(currentPlayer, hasMoved = false) {
+    updateTurn(currentPlayerId, currentPlayerName, hasMoved = false) {
         if (this.currentPlayerEl) {
-            this.currentPlayerEl.textContent = currentPlayer;
+            this.currentPlayerEl.textContent = currentPlayerName || currentPlayerId;
         }
 
         if (this.endTurnButton) {
-            this.endTurnButton.disabled = currentPlayer !== this.socket.id;
+            this.endTurnButton.disabled = currentPlayerId !== this.playerId;
             this.endTurnButton.textContent = hasMoved ? 'End Turn' : 'Skip Turn';
         }
     }
 
-    updatePlayerList(players, currentPlayer) {
+    updatePlayerList(players, currentPlayerId) {
         this.playerListEl.innerHTML = '';
         players.forEach(player => {
             const li = document.createElement('li');
-            li.textContent = player;
+            const name = player.name || player.id;
+            li.textContent = name;
             li.classList.add('player');
-            if (player === currentPlayer) {
+            if (player.id === currentPlayerId) {
                 li.classList.add('current');
             }
             this.playerListEl.appendChild(li);
@@ -240,6 +243,32 @@ class GameClient {
             target: target,
             position: position
         });
+    }
+
+    getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    setCookie(name, value) {
+        const expires = new Date();
+        expires.setFullYear(expires.getFullYear() + 1);
+        document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; samesite=Lax`;
+    }
+
+    askNickname() {
+        let nick = null;
+        try {
+            nick = prompt('Choose a nickname:', '') || '';
+        } catch (e) {}
+        if (!nick) {
+            // Fallback default nickname
+            nick = `Player-${(Math.random()*1000|0)}`;
+        }
+        this.setCookie('nickname', nick);
+        return nick;
     }
 }
 

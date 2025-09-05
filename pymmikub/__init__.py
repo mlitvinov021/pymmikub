@@ -16,6 +16,7 @@ def create_app(test_config=None):
     socketio: SocketIO = SocketIO(app)
 
     games: dict[str, Game] = {}
+    # Optional mapping for display names by player_id (can be extended later)
     playernames: dict[str, str] = {}
 
     app.config.from_mapping(
@@ -44,8 +45,16 @@ def create_app(test_config=None):
     def handle_join_game(data):
         room_name: str = data['room']
 
-        # TODO: of course set the actual player name
-        playernames[request.sid] = request.sid # type: ignore
+        # Identify the player via cookie; fallback to request SID if missing
+        player_id = request.cookies.get('player_id') or request.sid  # type: ignore
+
+        # Optional nickname provided by client
+        nickname = data.get('nickname')
+        if nickname:
+            playernames[player_id] = nickname
+        else:
+            # preserve existing or default to id
+            playernames.setdefault(player_id, player_id)
 
         join_room(room_name)
 
@@ -53,9 +62,9 @@ def create_app(test_config=None):
             new_game: Game = Game(room_name)
             games.update({room_name: new_game})
 
-        game : Game | None = games.get(room_name)
+        game: Game | None = games.get(room_name)
         if game:
-            game.connect_player(request.sid, playernames.get(request.sid)) # type: ignore
+            game.connect_player(player_id, request.sid, playernames.get(player_id, player_id))  # type: ignore
         else:
             print(f"Game room '{room_name}' not found.")
 
@@ -66,7 +75,11 @@ def create_app(test_config=None):
     def handle_place_tile(data):
         room_name: str = data['room']
         game: Game = games[room_name]
-        player: Player = game.players[request.sid] # type: ignore
+        # Lookup player by cookie player_id
+        player_id = request.cookies.get('player_id')  # type: ignore
+        if not player_id or player_id not in game.players:
+            return
+        player: Player = game.players[player_id]  # type: ignore
         is_new = (lambda x: True if isinstance(x, str) and x.lower() == "true" else False)(data['tile']['is_new'])
         tile: Tile = Tile(data['tile']['number'], Color(data['tile']['color']), is_new, data['tile']['id'])
         origin: Combination = game.board.combos[int(data['origin']) - 1]
@@ -87,7 +100,10 @@ def create_app(test_config=None):
     def handle_end_turn(data):
         room_name: str = data['room']
         game: Game = games[room_name]
-        player: Player = game.players[request.sid] # type: ignore
+        player_id = request.cookies.get('player_id')  # type: ignore
+        if not player_id or player_id not in game.players:
+            return
+        player: Player = game.players[player_id]  # type: ignore
         game.end_turn(player)
 
         update_room(room_name)
@@ -98,9 +114,22 @@ def create_app(test_config=None):
         if game is None:
             return
 
-        for player in game.players:
-            data = GameEncoder.encode(game, player)
-            emit('game_update', data, to=player)
+        # Send personalized update to each active SID of each player
+        for pid, player in game.players.items():
+            data = GameEncoder.encode(game, pid)
+            # Player can have multiple SIDs (multiple tabs)
+            for sid in list(game._connections.get(pid, set())):
+                emit('game_update', data, to=sid)
+
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        # Find the game this SID belongs to and remove it
+        sid = request.sid  # type: ignore
+        for room_name, game in games.items():
+            if sid in game._sid_to_pid:
+                game.disconnect_sid(sid)
+                update_room(room_name)
+                break
 
 
     return app
